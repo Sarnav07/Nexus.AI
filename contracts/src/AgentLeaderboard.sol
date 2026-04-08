@@ -139,10 +139,13 @@ contract AgentLeaderboard is Ownable, ReentrancyGuard {
         int256 pnlBps;
         uint256 startBalance = agents[agentAddress].startingBalanceUSDC;
         if (startBalance > 0) {
+            // casting to 'int256' is safe because USDC balances are bounded well below int256 max
+            // forge-lint: disable-start(unsafe-typecast)
             pnlBps =
                 (int256(currentBalanceUSDC) - int256(startBalance)) *
                 10_000 /
                 int256(startBalance);
+            // forge-lint: disable-end(unsafe-typecast)
         }
 
         emit PnLSnapshotTaken(agentAddress, currentBalanceUSDC, pnlBps);
@@ -176,10 +179,13 @@ contract AgentLeaderboard is Ownable, ReentrancyGuard {
         }
 
         if (startBalance > 0) {
+            // casting to 'int256' is safe because USDC balances are bounded well below int256 max
+            // forge-lint: disable-start(unsafe-typecast)
             pnlBps =
                 (int256(latestBalance) - int256(startBalance)) *
                 10_000 /
                 int256(startBalance);
+            // forge-lint: disable-end(unsafe-typecast)
         }
     }
 
@@ -220,10 +226,13 @@ contract AgentLeaderboard is Ownable, ReentrancyGuard {
             }
 
             if (startBal > 0) {
+                // casting to 'int256' is safe because USDC balances are bounded well below int256 max
+                // forge-lint: disable-start(unsafe-typecast)
                 pnls[i] =
                     (int256(latestBal) - int256(startBal)) *
                     10_000 /
                     int256(startBal);
+                // forge-lint: disable-end(unsafe-typecast)
             }
 
             unchecked {

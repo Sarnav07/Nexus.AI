@@ -337,6 +337,8 @@ contract AgentLeaderboardTest is Test {
         assertEq(latestBalance, currentBal);
 
         // Verify PnL calculation manually
+        // casting to 'int256' is safe because values are bounded by fuzz bounds above
+        // forge-lint: disable-next-line(unsafe-typecast)
         int256 expectedPnl = (int256(currentBal) - int256(startBal)) * 10_000 / int256(startBal);
         assertEq(pnlBps, expectedPnl);
     }

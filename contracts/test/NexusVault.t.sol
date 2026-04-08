@@ -210,7 +210,7 @@ contract NexusVaultTest is Test {
         assertTrue(ok);
     }
 
-    function test_checkDrawdownLimit_noHistory() public {
+    function test_checkDrawdownLimit_noHistory() public view {
         // User with no deposits should return true
         bool ok = vault.checkDrawdownLimit(address(0xDEAD), 500e6);
         assertTrue(ok);
@@ -279,7 +279,7 @@ contract NexusVaultTest is Test {
     }
 
     /* ── View Helpers ─────────────────────────────────── */
-    function test_getRiskParams() public {
+    function test_getRiskParams() public view {
         (uint256 drawdownBps, uint256 positionBps, bool isPaused) = vault
             .getRiskParams();
         assertEq(drawdownBps, MAX_DRAWDOWN_BPS);

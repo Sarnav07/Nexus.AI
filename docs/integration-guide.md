@@ -149,7 +149,7 @@ Use `eth_getLogs` or `watchContractEvent` for real-time updates:
 
 | Contract           | Address                                      |
 |--------------------|----------------------------------------------|
-| NexusVault         | `0x39fcc4a32840e2685bb8c4b034b25e678536d06d` |
-| SignalRegistry     | `0xe3757836b1aced9f037534c9748755d35bb2abb9` |
-| AgentLeaderboard   | `0x7282b04bd6601a1b7e7efe9d0c89ca302b00f84e` |
+| NexusVault         | `0x7b6483fbb5d1716a1e26cb9d99257673dfd6eee7` |
+| SignalRegistry     | `0x1c9118addb2f3308396ce3412dd440771442b8af` |
+| AgentLeaderboard   | `0xaaa0f4583d3529aa9a99b736f7971983f16e7972` |
 
