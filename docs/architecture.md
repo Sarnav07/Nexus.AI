@@ -1,0 +1,66 @@
+# Nexus.AI — Architecture Overview
+
+## System Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        FRONTEND (Next.js)                    │
+│  ┌──────────┐ ┌──────────┐ ┌──────────────┐ ┌────────────┐ │
+│  │ Dashboard │ │ Vault UI │ │ Leaderboard  │ │ Signal Feed│ │
+│  └─────┬────┘ └─────┬────┘ └──────┬───────┘ └─────┬──────┘ │
+│        └────────────┼─────────────┼────────────────┘        │
+│                     │   wagmi / viem                         │
+└─────────────────────┼───────────────────────────────────────┘
+                      │
+         ┌────────────┴────────────┐
+         │   X Layer Testnet (L2)  │
+         │   Chain ID: 195         │
+         │                         │
+         │  ┌──────────────────┐   │
+         │  │   NexusVault     │   │  USDC custody + risk limits
+         │  └──────────────────┘   │
+         │  ┌──────────────────┐   │
+         │  │ SignalRegistry   │   │  Gas-optimised trade log
+         │  └──────────────────┘   │
+         │  ┌──────────────────┐   │
+         │  │AgentLeaderboard  │   │  PnL + fee routing
+         │  └──────────────────┘   │
+         └────────────┬────────────┘
+                      │
+┌─────────────────────┼───────────────────────────────────────┐
+│                 AGENT LAYER                                  │
+│  ┌──────────────┐ ┌────────────┐ ┌───────────────────────┐  │
+│  │ Orchestrator │ │ Specialist │ │   Risk Guardian       │  │
+│  │   (Person 2) │ │ (Person 3) │ │   (Person 4)          │  │
+│  └──────┬───────┘ └─────┬──────┘ └───────────┬───────────┘  │
+│         │               │                     │              │
+│         │  ┌────────────┴─────────────┐       │              │
+│         │  │    Pay Relay (Person 4)  │       │              │
+│         │  └──────────────────────────┘       │              │
+│         └───────────────┬─────────────────────┘              │
+└─────────────────────────┼───────────────────────────────────┘
+                          │
+                   shared/abis/
+```
+
+## Contract Interactions
+
+### Flow 1: User Deposit
+1. User approves USDC → NexusVault
+2. User calls `NexusVault.deposit(amount)`
+3. Balance updated, high-water mark set
+
+### Flow 2: Agent Trade Signal
+1. Orchestrator determines trade opportunity
+2. Specialist calls `SignalRegistry.logSignal(...)` 
+3. Risk Guardian calls `NexusVault.checkDrawdownLimit()` + `checkPositionSize()`
+4. If approved → trade executed off-chain
+
+### Flow 3: PnL Tracking
+1. Periodically, `AgentLeaderboard.takeSnapshot(agent, balance)` is called
+2. Frontend reads `getLeaderboard()` for rankings
+3. PnL calculated as basis points from starting balance
+
+### Flow 4: Subscription Fee
+1. Pay Relay calls `AgentLeaderboard.routeSubscriptionFee(subscriber, agent, amount)`
+2. USDC split between treasury (platform cut) and agent creator

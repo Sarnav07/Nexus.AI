@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  # Placeholder — add services as needed
+  # orchestrator:
+  #   build: ../agents/orchestrator
+  #   env_file: ../.env
+  # specialist:
+  #   build: ../agents/specialist
+  #   env_file: ../.env
+  placeholder:
+    image: hello-world
