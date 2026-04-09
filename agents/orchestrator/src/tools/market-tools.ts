@@ -1,124 +1,102 @@
 import { tool } from 'ai';
 import { z } from 'zod';
+import { createMarketScoutService, ValidationError } from '@nexus/specialist';
 
-/**
- * Mock Market Data Tool
- *
- * Returns simulated market data. Will be replaced by Person 3's
- * real Market Scout agent when ready.
- */
-
-// Simulated token prices (updated per-call with slight randomness)
-const BASE_PRICES: Record<string, number> = {
-  ETH: 3250.0,
-  BTC: 62500.0,
-  OKB: 48.5,
-  USDC: 1.0,
-  USDT: 1.0,
-  DAI: 1.0,
-  WETH: 3250.0,
-  WBTC: 62500.0,
-  UNI: 7.85,
-  LINK: 14.2,
-  AAVE: 92.3,
-  ARB: 1.12,
-  OP: 2.45,
-};
-
-function jitter(price: number, pct = 0.02): number {
-  const change = price * pct * (Math.random() * 2 - 1);
-  return Math.round((price + change) * 100) / 100;
-}
+const marketScout = createMarketScoutService();
 
 export const getTokenPrice = tool({
-  description:
-    'Get the current price of a token in USD. This is simulated market data for development — will be replaced by real feeds from the Market Scout agent.',
+  description: 'Get current token price in USD from specialist Market Scout.',
   parameters: z.object({
-    symbol: z
-      .string()
-      .transform((s) => s.toUpperCase())
-      .describe('Token symbol, e.g. ETH, BTC, USDC'),
+    symbol: z.string().transform((s) => s.toUpperCase()).describe('Token symbol, e.g. ETH, BTC, USDC'),
   }),
   execute: async ({ symbol }) => {
-    const base = BASE_PRICES[symbol];
-    if (!base) {
-      return {
-        symbol,
-        price: null,
-        message: `Unknown token symbol: ${symbol}. Available: ${Object.keys(BASE_PRICES).join(', ')}`,
-      };
-    }
-
-    const price = jitter(base);
+    const result = await marketScout.getTokenPrice({ symbol });
     return {
-      symbol,
-      price,
-      priceFormatted: `$${price.toLocaleString()}`,
-      source: 'mock-market-scout',
-      message: `${symbol} price: $${price.toLocaleString()} (simulated)`,
+      symbol: result.symbol,
+      price: result.price,
+      source: result.source,
+      timestamp: result.timestamp,
+      message: `${result.symbol} price: $${result.price.toLocaleString()} (${result.source})`,
     };
   },
 });
 
 export const getMarketOverview = tool({
-  description:
-    'Get a market overview with prices of major tokens. Simulated data for development.',
-  parameters: z.object({}),
-  execute: async () => {
-    const tokens = ['ETH', 'BTC', 'OKB', 'UNI', 'LINK', 'AAVE'];
-    const prices = tokens.map((symbol) => ({
-      symbol,
-      price: jitter(BASE_PRICES[symbol]!),
-      change24h: `${(Math.random() * 10 - 5).toFixed(2)}%`,
-    }));
-
+  description: 'Get market overview from specialist Market Scout.',
+  parameters: z.object({
+    symbols: z.array(z.string()).min(1).max(20).default(['ETH', 'BTC', 'OKB', 'UNI', 'LINK', 'USDC']),
+  }),
+  execute: async ({ symbols }) => {
+    const result = await marketScout.getMarketOverview({ symbols });
     return {
-      source: 'mock-market-scout',
-      tokens: prices,
+      source: result.source,
+      tokens: result.prices.map((pricePoint) => ({ symbol: pricePoint.symbol, price: pricePoint.price })),
+      timestamp: result.timestamp,
       message:
-        'Market Overview (simulated):\n' +
-        prices
-          .map((t) => `${t.symbol}: $${t.price.toLocaleString()} (${t.change24h})`)
-          .join('\n'),
+        'Market Overview:\n' +
+        result.prices.map((pricePoint) => `${pricePoint.symbol}: $${pricePoint.price.toLocaleString()}`).join('\n'),
     };
   },
 });
 
 export const getYieldOpportunities = tool({
-  description:
-    'Get available DeFi yield opportunities (liquidity pools, farms). Simulated data — will be replaced by real data from the Yield Farmer agent.',
+  description: 'Get ranked Uniswap V3 LP opportunities from specialist Market Scout.',
   parameters: z.object({
-    minAPY: z
-      .number()
-      .min(0)
-      .default(0)
-      .describe('Minimum APY filter (percentage)'),
+    minAPY: z.number().min(0).default(0).describe('Minimum APY filter (percentage)'),
+    limit: z.number().int().min(1).max(20).default(5),
   }),
-  execute: async ({ minAPY }) => {
-    const pools = [
-      { pair: 'ETH/USDC', protocol: 'Uniswap V3', apy: 12.5, tvl: '2.4M', fee: '0.3%', risk: 'Medium' },
-      { pair: 'WBTC/ETH', protocol: 'Uniswap V3', apy: 8.2, tvl: '5.1M', fee: '0.3%', risk: 'Medium' },
-      { pair: 'USDC/USDT', protocol: 'Uniswap V3', apy: 4.1, tvl: '12.8M', fee: '0.01%', risk: 'Low' },
-      { pair: 'ETH/OKB', protocol: 'Uniswap V3', apy: 18.7, tvl: '890K', fee: '0.3%', risk: 'High' },
-      { pair: 'UNI/ETH', protocol: 'Uniswap V3', apy: 15.3, tvl: '1.2M', fee: '0.3%', risk: 'Medium-High' },
-      { pair: 'LINK/ETH', protocol: 'Uniswap V3', apy: 10.9, tvl: '780K', fee: '0.3%', risk: 'Medium' },
-    ];
-
-    const filtered = pools
-      .filter((p) => p.apy >= minAPY)
-      .map((p) => ({ ...p, apy: jitter(p.apy, 0.1) }));
+  execute: async ({ minAPY, limit }) => {
+    const result = await marketScout.getLpOpportunities({ minApy: minAPY, limit });
 
     return {
-      source: 'mock-yield-farmer',
-      count: filtered.length,
-      pools: filtered,
+      source: result.source,
+      count: result.count,
+      pools: result.opportunities.map((pool) => ({
+        pair: pool.pair,
+        protocol: pool.protocol,
+        apy: pool.apy,
+        tvl: `${(pool.tvlUsd / 1_000_000).toFixed(2)}M`,
+        fee: `${(pool.feeTier / 10000).toFixed(2)}%`,
+        risk: pool.risk,
+        score: pool.score,
+      })),
+      timestamp: result.timestamp,
       message:
-        filtered.length === 0
+        result.count === 0
           ? `No yield opportunities found above ${minAPY}% APY.`
-          : `Found ${filtered.length} yield opportunities:\n` +
-            filtered
-              .map((p) => `${p.pair} on ${p.protocol} — ${p.apy.toFixed(1)}% APY (TVL: $${p.tvl}, Risk: ${p.risk})`)
+          : `Found ${result.count} yield opportunities:\n` +
+            result.opportunities
+              .map((pool) => `${pool.pair} — ${pool.apy.toFixed(2)}% APY (score ${pool.score.toFixed(2)}, risk: ${pool.risk})`)
               .join('\n'),
     };
+  },
+});
+
+export const getMarketSignal = tool({
+  description: 'Compute SMA/EMA and momentum signal from a provided price series.',
+  parameters: z.object({
+    symbol: z.string().describe('Token symbol'),
+    prices: z.array(z.number().positive()).min(3).describe('Chronological price points'),
+    smaWindow: z.number().int().min(2).default(5),
+    emaWindow: z.number().int().min(2).default(5),
+  }),
+  execute: async ({ symbol, prices, smaWindow, emaWindow }) => {
+    try {
+      return marketScout.computeSignals({
+        symbol,
+        points: prices,
+        smaWindow,
+        emaWindow,
+      });
+    } catch (error: unknown) {
+      if (error instanceof ValidationError) {
+        return {
+          error: error.code,
+          details: error.details,
+          message: error.message,
+        };
+      }
+      throw error;
+    }
   },
 });

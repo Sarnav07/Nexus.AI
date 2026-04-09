@@ -153,3 +153,60 @@ Use `eth_getLogs` or `watchContractEvent` for real-time updates:
 | SignalRegistry     | `0x1c9118addb2f3308396ce3412dd440771442b8af` |
 | AgentLeaderboard   | `0xaaa0f4583d3529aa9a99b736f7971983f16e7972` |
 
+
+---
+
+## Person 3: Specialist Agents Integration (Production)
+
+### Package
+- Path: `agents/specialist`
+- Purpose: Production specialist logic for Market Scout + Yield Farmer + Signal payload building.
+
+### Core Exports
+- `createMarketScoutService()`
+- `buildExecutionPayloadWithDefaults()`
+- `buildLogSignalPayload()`
+- Zod schemas from:
+  - `schemas/market`
+  - `schemas/yield`
+  - `schemas/signals`
+
+### JSON Contracts (for Person 2)
+- **Market outputs** are deterministic JSON with `source`, `timestamp`, and typed fields (`price`, `opportunities`, etc).
+- **Execution bundle** includes:
+  - `idempotencyKey`
+  - `chainId`, `target`, `data`, `value`
+  - `tickRange`
+  - `metadata` (slippage, deadline, amount raw, token addresses, rationale, confidence)
+- **Signal payload** includes:
+  - `preTradeSignal`
+  - `encodedCall` for `SignalRegistry.logSignal` / `logSignalBatch`
+
+### Environment Variables
+In `agents/specialist/.env.example`:
+- `X_LAYER_RPC_URL`
+- `SPECIALIST_MARKET_PROVIDER` (`mock` or `onchainos`)
+- `ONCHAINOS_MARKET_API_BASE_URL`
+- `ONCHAINOS_MARKET_API_KEY`
+- `SPECIALIST_DEFAULT_DEADLINE_SECONDS`
+- `SPECIALIST_DEFAULT_SLIPPAGE_BPS`
+
+### How Person 2 Uses It
+Orchestrator tools import specialist package and call:
+- market tools → `MarketScoutService`
+- trade tools → `buildExecutionPayloadWithDefaults` + signal payload builders
+
+This preserves existing orchestrator tool UX while replacing mock internals with typed specialist outputs.
+
+### Commands
+```bash
+cd agents/specialist
+npm ci
+npm run typecheck
+npm run test
+
+cd ../orchestrator
+npm ci
+npm run typecheck
+npm run test
+```
