@@ -58,6 +58,26 @@ forge script script/Deploy.s.sol:Deploy --rpc-url xlayer_testnet --broadcast --c
 node extract_abis.js
 ```
 
+## Quick Start — Agents
+
+Because the agents are decoupled for security (Orchestrator, Specialist, Risk Guardian), you must install dependencies in their respective folders before running the centralized Orchestrator API.
+
+```bash
+# 1. Install Specialist Dependencies
+cd agents/specialist
+npm install
+
+# 2. Install Risk Guardian Dependencies
+cd ../risk-guardian
+npm install
+
+# 3. Start the Orchestrator API Server
+cd ../orchestrator
+npm install
+cp .env.example .env
+npm run dev
+```
+
 ## Network
 
 | Parameter | Value |
