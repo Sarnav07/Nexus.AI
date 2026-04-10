@@ -5,6 +5,7 @@ import { getLeaderboard, getAgentPnL, getAgentDetails } from '../tools/leaderboa
 import { getTotalSignals, getRecentSignals } from '../tools/signal-tools.js';
 import { getTokenPrice, getMarketOverview, getYieldOpportunities } from '../tools/market-tools.js';
 import { buildTradePayload, simulateTradeExecution } from '../tools/trade-tools.js';
+import { signAndExecuteTrade } from '../tools/tee-wallet-tools.js';
 
 // ── System Prompt ───────────────────────────────────────────────────────────
 const SYSTEM_PROMPT = `You are **Nexus Orchestrator**, the central AI agent of the Nexus.AI DeFi intelligence platform running on X Layer (Testnet).
@@ -41,7 +42,7 @@ You are the brain that parses user intents and routes them to the right tools an
 - 🏆 Leaderboard: View rankings, agent PnL, agent details
 - 📡 Signals: Count and fetch recent on-chain trade signals
 - 💹 Market: Token prices, market overview, yield opportunities
-- 🔄 Trading: Build trade payloads, simulate trade execution`;
+- 🔄 Trading: Build trade payloads, simulate trade execution, and programmatically sign/broadcast using OnchainOS TEE Wallet`;
 
 // ── All Tools ───────────────────────────────────────────────────────────────
 const ALL_TOOLS = {
@@ -65,6 +66,8 @@ const ALL_TOOLS = {
   // Trade tools
   buildTradePayload,
   simulateTradeExecution,
+  // Wallet tools
+  signAndExecuteTrade,
 };
 
 // ── Model ───────────────────────────────────────────────────────────────────

@@ -1,6 +1,7 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 import { buildExecutionPayloadWithDefaults, buildLogSignalPayload } from '@nexus/specialist';
+import { runRiskGuardianCheck } from '@nexus/risk-guardian';
 
 const signalTypeMap = {
   market_buy: 'MARKET_BUY',
@@ -117,11 +118,31 @@ export const simulateTradeExecution = tool({
         userAddress,
         slippageBps: execution.metadata.slippageBps,
         steps: [
-          { step: 1, name: 'Risk Check', status: 'PENDING', details: 'To be validated by Risk Guardian' },
+          ...(await Promise.all([
+            runRiskGuardianCheck(
+              {
+                idempotencyKey: execution.idempotencyKey,
+                chainId: execution.chainId,
+                target: execution.target,
+                data: execution.data,
+                value: execution.value,
+                tickRange: execution.tickRange,
+                metadata: execution.metadata
+              },
+              userAddress,
+              '0x7b6483fbb5d1716a1e26cb9d99257673dfd6eee7',
+              process.env.X_LAYER_RPC_URL || 'https://testrpc.xlayer.tech'
+            ).then((isOk) => ({
+              step: 1,
+              name: 'Risk Check',
+              status: isOk ? '✅ PASSED' : '❌ FAILED',
+              details: isOk ? 'Validated by Risk Guardian' : 'Rejected by Risk Guardian'
+            }))
+          ])),
           { step: 2, name: 'Signal Intent', status: 'READY', details: 'SignalRegistry calldata prepared' },
           { step: 3, name: 'Execution Payload', status: 'READY', details: 'Calldata-ready bundle for signer' },
         ],
-        status: 'READY_FOR_ORCHESTRATOR_SIGNING',
+        status: 'WAITING_FOR_SIGNATURE',
         executionPayload: execution,
         signalIntent: signalPayload,
         timestamp: new Date().toISOString(),
