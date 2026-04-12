@@ -6,6 +6,38 @@
 
 Nexus.AI is a trustless multi-agent DeFi platform where AI agents collaboratively manage liquidity positions, execute trades, and track performance — all with on-chain accountability.
 
+## X Layer Ecosystem Positioning
+
+As DeFi becomes increasingly complex, users are overwhelmed by managing yield across dozens of protocols. **Nexus.AI serves as an intelligent, intent-based layer specifically designed for the X Layer ecosystem.** By utilizing the high performance and low fees of the X Layer Testnet, we abstract away gas complexities and risk management. 
+
+Instead of manually checking UniV3 ticks, a user on X Layer simply states: *"Get me the safest yield on USDC."* Our agents calculate the optimal route, ensure it meets the user's risk tolerance, and execute the transaction completely autonomously using securely managed Agentic Wallets on X Layer.
+
+## Multi-Agent Architecture & Roles
+
+Nexus.AI decouples the AI reasoning into three specialized agents for enhanced security and separation of concerns:
+
+1. **Orchestrator Agent**: The "Brain". Parses the user's natural language intent, uses market data tools to formulate a strategy, and delegates execution instructions to the Specialist.
+2. **Specialist Agents (Yield Farmer / Market Scout)**: The "Hands". Receives structured instructions from the Orchestrator, calculates exact Uniswap V3 ticks/slippage parameters, and builds the raw transaction `calldata`.
+3. **Risk Guardian**: The "Shield". An independent microservice that intercepts the raw transaction before signing, checking it against the user's on-chain `NexusVault` limits (e.g., maximum allowable drawdown and position sizing). If it fails context validation, the transaction is rejected.
+
+## Module Usage: Onchain OS & Uniswap Skills
+
+To achieve true agentic execution on X Layer, our platform integrates standard core modules:
+
+- **Onchain OS Wallet API**: Used by the Orchestrator to programmatically sign and broadcast transactions to X Layer without exposing private keys (see `agents/orchestrator/src/services/onchainos-wallet.ts` and the injected `okx/onchainos-skills` module).
+- **Uniswap AI Skills**: Utilized by the Yield Farmer specialist to precisely route liquidity additions, calculate optimal ticks, and parse pool data (see `agents/orchestrator/src/skills/uniswap/agent-skills`).
+
+## Working Mechanics
+
+How an intent becomes a signed X Layer transaction:
+
+1. **Intent Reception**: User sends "Put 100 USDC into a safe yield pool."
+2. **Strategy Formulation**: Orchestrator queries market tools and decides to provide liquidity to a specific Uniswap V3 pair.
+3. **Calldata Generation**: Specialist Agent calculates exact parameters and generates the execution bundle (idempotency key, target, calldata, value).
+4. **Risk Verification**: Risk Guardian intercepts the bundle and queries `NexusVault` on X Layer to verify the trade respects the user's risk profile.
+5. **Intent Logging**: The Onchain OS TEE Wallet signs a `LogSignal` transaction, submitting the intent to the `SignalRegistry` smart contract for transparency.
+6. **Execution**: The Onchain OS TEE Wallet immediately signs and broadcasts the actual Uniswap V3 trade payload to X Layer Testnet.
+
 ## Repository Structure
 
 ```
@@ -76,6 +108,9 @@ cd ../orchestrator
 npm install
 cp .env.example .env
 npm run dev
+
+# (Optional) Run the farming script
+npm run farm
 ```
 
 ## Network
