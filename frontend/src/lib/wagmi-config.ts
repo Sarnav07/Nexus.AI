@@ -4,7 +4,7 @@ import { injected } from 'wagmi/connectors';
 
 // ── X Layer Testnet Chain Definition ─────────────────────────────────────────
 export const xLayerTestnet = defineChain({
-  id: 195,
+  id: 1952,
   name: 'X Layer Testnet',
   nativeCurrency: { decimals: 18, name: 'OKB', symbol: 'OKB' },
   rpcUrls: {
@@ -20,6 +20,7 @@ export const xLayerTestnet = defineChain({
 // Only injected() — it auto-detects MetaMask, Rabby, OKX, Coinbase, etc.
 // metaMask() was removed: it creates a duplicate entry alongside injected().
 export const wagmiConfig = createConfig({
+  autoConnect: false,  // Disable auto-connect to allow manual wallet selection after disconnect
   chains: [xLayerTestnet],
   connectors: [injected()],
   transports: {
@@ -28,5 +29,5 @@ export const wagmiConfig = createConfig({
 });
 
 export type SupportedChainId = typeof xLayerTestnet.id;
-export const SUPPORTED_CHAIN_ID: SupportedChainId = 195;
+export const SUPPORTED_CHAIN_ID: SupportedChainId = 1952;
 

@@ -6,9 +6,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // ── Deployed Contract Addresses ─────────────────────────────────────────────
 export const CONTRACTS = {
-  NexusVault: '0x7b6483fbb5d1716a1e26cb9d99257673dfd6eee7' as const,
-  SignalRegistry: '0x1c9118addb2f3308396ce3412dd440771442b8af' as const,
-  AgentLeaderboard: '0xaaa0f4583d3529aa9a99b736f7971983f16e7972' as const,
+  NexusVault: '0x9DDa87f22F2a29D43b36417EA8eAEB1F68CFb689' as const,
+  SignalRegistry: '0x66B39854C90d9898dBEE1Aa1E24F541A731DC925' as const,
+  AgentLeaderboard: '0xE606422f053Cbb2F1961CE761fEe8c2a06f4db60' as const,
   USDC: '0x74b7f16337b8972027f6196a17a631ac6de26d22' as const,
   Treasury: '0xbd598563ad2f462baa3f8da0e79c310ce03682c6' as const,
 } as const;

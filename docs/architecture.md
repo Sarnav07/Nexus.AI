@@ -14,7 +14,7 @@
                       │
          ┌────────────┴────────────┐
          │   X Layer Testnet (L2)  │
-         │   Chain ID: 195         │
+         │   Chain ID: 1952        │
          │                         │
          │  ┌──────────────────┐   │
          │  │   NexusVault     │   │  USDC custody + risk limits

@@ -12,7 +12,7 @@ const PORT = 3004;
 // Mock configuration loaded from environment or injected
 const CONFIG = {
     rpcUrl: "https://testrpc.xlayer.tech",
-    leaderboardAddress: "0xaaa0f4583d3529aa9a99b736f7971983f16e7972", // from docs
+    leaderboardAddress: "0xE606422f053Cbb2F1961CE761fEe8c2a06f4db60", // from docs
     agentAddress: process.env.AGENT_ADDRESS || "0xMySpecialistAgentAddress",
     feeAmountStr: "10000000", // e.g. 10 USDC
 };
