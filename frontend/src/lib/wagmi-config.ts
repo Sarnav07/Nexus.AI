@@ -1,0 +1,32 @@
+import { http, createConfig } from 'wagmi';
+import { defineChain } from 'viem';
+import { injected } from 'wagmi/connectors';
+
+// ── X Layer Testnet Chain Definition ─────────────────────────────────────────
+export const xLayerTestnet = defineChain({
+  id: 195,
+  name: 'X Layer Testnet',
+  nativeCurrency: { decimals: 18, name: 'OKB', symbol: 'OKB' },
+  rpcUrls: {
+    default: { http: ['https://testrpc.xlayer.tech'] },
+  },
+  blockExplorers: {
+    default: { name: 'OKLink X Layer Testnet', url: 'https://www.oklink.com/xlayer-test' },
+  },
+  testnet: true,
+});
+
+// ── Wagmi Config ──────────────────────────────────────────────────────────────
+// Only injected() — it auto-detects MetaMask, Rabby, OKX, Coinbase, etc.
+// metaMask() was removed: it creates a duplicate entry alongside injected().
+export const wagmiConfig = createConfig({
+  chains: [xLayerTestnet],
+  connectors: [injected()],
+  transports: {
+    [xLayerTestnet.id]: http('https://testrpc.xlayer.tech'),
+  },
+});
+
+export type SupportedChainId = typeof xLayerTestnet.id;
+export const SUPPORTED_CHAIN_ID: SupportedChainId = 195;
+
