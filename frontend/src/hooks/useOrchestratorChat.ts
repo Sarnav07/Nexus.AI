@@ -25,8 +25,11 @@ export function useOrchestratorChat() {
 
     setError(null);
 
+    // Sanitize input
+    const sanitizedInput = userInput.trim().replace(/[<>\"'&]/g, '');
+
     // Append user message immediately
-    const userMessage: ChatMessage = { role: 'user', content: userInput.trim() };
+    const userMessage: ChatMessage = { role: 'user', content: sanitizedInput };
     const nextMessages = [...messages, userMessage];
     setMessages(nextMessages);
 
@@ -88,12 +91,17 @@ export function useOrchestratorChat() {
     } catch (err: unknown) {
       if (err instanceof Error && err.name === 'AbortError') return; // user cancelled
 
-      const msg =
-        err instanceof Error
-          ? err.message.includes('Failed to fetch') || err.message.includes('NetworkError')
-            ? 'Orchestrator offline. Start it with `cd agents && npm run dev`.'
-            : err.message
-          : 'Unknown error';
+      let msg = 'Unknown error';
+
+      if (err instanceof Error) {
+        if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+          msg = 'Orchestrator offline. Start it with `cd agents && npm run dev`.';
+        } else if (err.message.includes('429') || err.message.includes('Quota') || err.message.includes('quota')) {
+          msg = 'AI service quota exceeded. Please try again later or contact support for increased limits.';
+        } else {
+          msg = err.message;
+        }
+      }
 
       setError(msg);
 

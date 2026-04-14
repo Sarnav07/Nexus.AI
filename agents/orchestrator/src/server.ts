@@ -35,7 +35,11 @@ app.post('/api/chat', async (c) => {
       return c.json({ error: 'No messages provided' }, 400);
     }
 
+    console.log('Received chat request with messages:', messages.length);
+
     const result = await streamChat(messages);
+
+    console.log('Stream chat result obtained');
 
     // Convert the async iterable text stream to a ReadableStream<Uint8Array>
     const encoder = new TextEncoder();
@@ -43,10 +47,12 @@ app.post('/api/chat', async (c) => {
       async start(controller) {
         try {
           for await (const chunk of result.textStream) {
+            console.log('Sending chunk:', chunk);
             controller.enqueue(encoder.encode(chunk));
           }
           controller.close();
         } catch (err) {
+          console.error('Error in stream:', err);
           controller.error(err);
         }
       },
@@ -62,8 +68,22 @@ app.post('/api/chat', async (c) => {
     });
   } catch (error) {
     console.error('Chat error:', error);
+
+    // Check for quota exceeded error
+    const errorMessage = String(error);
+    if (errorMessage.includes('quota') || errorMessage.includes('Quota exceeded')) {
+      return c.json(
+        {
+          error: 'API Quota Exceeded',
+          details: 'The AI service quota has been reached. Please try again later or contact support for increased limits.',
+          retryAfter: 60 // seconds
+        },
+        429, // Too Many Requests
+      );
+    }
+
     return c.json(
-      { error: 'Failed to process chat request', details: String(error) },
+      { error: 'Failed to process chat request', details: errorMessage },
       500,
     );
   }

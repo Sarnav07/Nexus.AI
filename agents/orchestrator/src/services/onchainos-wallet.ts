@@ -19,10 +19,11 @@ export class OnchainOsWalletService {
   constructor(apiKey: string) {
     if (!apiKey) throw new Error('ONCHAINOS_TEE_API_KEY is required');
     
-    // Abstracted TEE backend for the hacked demo. We use the testnet key to simulate the managed wallet.
-    // In production: this is managed inside the TEE enclave by okx.
-    const pk = process.env.TEE_SIMULATED_PRIVATE_KEY as Hex || '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
-    this.account = privateKeyToAccount(pk);
+    // In production, this uses the OKX OnchainOS Wallet API / TEE Enclave
+    // For development, use a secure private key from environment
+    const pk = process.env.TEE_PRIVATE_KEY;
+    if (!pk) throw new Error('TEE_PRIVATE_KEY environment variable is required');
+    this.account = privateKeyToAccount(pk as Hex);
     
     this.publicClient = createPublicClient({
       chain: xLayerTestnet,

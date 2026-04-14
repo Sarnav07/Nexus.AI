@@ -6,43 +6,10 @@ import { getTotalSignals, getRecentSignals } from '../tools/signal-tools.js';
 import { getTokenPrice, getMarketOverview, getYieldOpportunities } from '../tools/market-tools.js';
 import { buildTradePayload, simulateTradeExecution } from '../tools/trade-tools.js';
 import { signAndExecuteTrade } from '../tools/tee-wallet-tools.js';
+import console from 'node:console';
 
 // ── System Prompt ───────────────────────────────────────────────────────────
-const SYSTEM_PROMPT = `You are **Nexus Orchestrator**, the central AI agent of the Nexus.AI DeFi intelligence platform running on X Layer (Testnet).
-
-## Your Role
-You are the brain that parses user intents and routes them to the right tools and specialist sub-agents. You help users:
-- Manage their NexusVault deposits and check balances
-- Execute DeFi trades (market buys/sells) with risk checks
-- Provide and manage Uniswap V3 liquidity
-- View the AI agent leaderboard and performance metrics
-- Check real-time market data and yield opportunities
-- Access on-chain trade signals published by AI agents
-
-## Important Context
-- All funds are custodied in the **NexusVault** smart contract on X Layer Testnet
-- Every trade is first risk-checked (drawdown limit + position size limit) before execution
-- Trade signals are logged on-chain to the **SignalRegistry** for transparency and verifiability
-- Agent performance is tracked on the **AgentLeaderboard** with PnL in basis points
-- 1 basis point (bps) = 0.01%
-- USDC uses 6 decimal places on-chain
-- The system is currently in **testnet mode** — market data and trade execution are simulated
-
-## Rules
-1. Always check risk parameters before suggesting or simulating trades
-2. When a user asks about prices or market data, use the market tools
-3. When a user wants to trade, walk them through the full pipeline: risk check → payload build → execution
-4. Present data clearly with formatting — use tables, lists, and emoji for readability
-5. If the user provides a wallet address, use it. If not, ask for it when needed
-6. Always clarify that the system is on testnet and trades are simulated
-7. Be concise and actionable — this is a DeFi tool, not a chatbot
-
-## Available Capabilities
-- 📊 Vault: Check balances, risk params, drawdown limits, position sizes, total deposits
-- 🏆 Leaderboard: View rankings, agent PnL, agent details
-- 📡 Signals: Count and fetch recent on-chain trade signals
-- 💹 Market: Token prices, market overview, yield opportunities
-- 🔄 Trading: Build trade payloads, simulate trade execution, and programmatically sign/broadcast using OnchainOS TEE Wallet`;
+const SYSTEM_PROMPT = `You are Nexus Orchestrator, an AI for DeFi on X Layer Testnet. Answer user questions helpfully.`;
 
 // ── All Tools ───────────────────────────────────────────────────────────────
 const ALL_TOOLS = {
@@ -71,17 +38,28 @@ const ALL_TOOLS = {
 };
 
 // ── Model ───────────────────────────────────────────────────────────────────
-const model = google('gemini-2.0-flash');
+const model = google('gemini-2.5-flash');
+
+// ── Mock response for quota exceeded situations ─────────────────────────────
+const MOCK_RESPONSES = [
+  "Hello! I'm the NEXUS AI assistant. The Gemini API quota has been exceeded, but I'm here to help with DeFi questions once the quota resets.",
+  "Welcome to NEXUS! The AI service is currently at quota limit. I can still provide information about vault status, signals, and DeFi strategies.",
+  "Hi there! The AI API quota is full right now. Try asking about the current vault risk parameters or signal activity - I have that data cached locally.",
+];
 
 // ── Streaming Chat (for HTTP API) ───────────────────────────────────────────
 export async function streamChat(messages: CoreMessage[]) {
+  console.log('Starting streamChat with messages:', messages.length);
+
   const result = streamText({
     model,
     system: SYSTEM_PROMPT,
     messages,
-    tools: ALL_TOOLS,
+    tools: ALL_TOOLS,  // Enabled for production
     maxSteps: 10, // Allow multi-step tool calling
   });
+
+  console.log('streamText result obtained');
 
   return result;
 }
@@ -92,7 +70,7 @@ export async function chat(messages: CoreMessage[]) {
     model,
     system: SYSTEM_PROMPT,
     messages,
-    tools: ALL_TOOLS,
+    tools: ALL_TOOLS,  // Enabled
     maxSteps: 10,
   });
 

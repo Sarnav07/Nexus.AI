@@ -3,7 +3,9 @@ import { generateAccessToken } from './middleware';
 
 export const pendingInvoices = new Map<string, string>(); // txHash -> jwt
 
-export function startOnChainListener(
+let lastProcessedBlock: number = 0;
+
+export async function startOnChainListener(
     leaderboardAddress: string,
     rpcUrl: string
 ) {
@@ -14,16 +16,32 @@ export function startOnChainListener(
 
     const leaderboardContract = new Contract(leaderboardAddress, abi, provider);
 
-    console.log(`[PAY RELAY] Listening for SubscriptionFeeRouted on ${leaderboardAddress}...`);
+    console.log(`[PAY RELAY] Polling for SubscriptionFeeRouted on ${leaderboardAddress}...`);
 
-    leaderboardContract.on("SubscriptionFeeRouted", (subscriber: string, agentAddress: string, feeAmount: bigint, platformCut: bigint, creatorCut: bigint, event: any) => {
-        const txHash = event.log ? event.log.transactionHash : "unknown";
-        console.log(`[PAY RELAY] Recognized Payment from ${subscriber} for Agent ${agentAddress}`);
+    // Initialize lastProcessedBlock
+    lastProcessedBlock = await provider.getBlockNumber();
 
-        // Generate Token
-        const jwt = generateAccessToken(subscriber, agentAddress, txHash);
+    // Poll every 10 seconds
+    setInterval(async () => {
+        try {
+            const currentBlock = await provider.getBlockNumber();
+            if (currentBlock > lastProcessedBlock) {
+                const events = await leaderboardContract.queryFilter("SubscriptionFeeRouted", lastProcessedBlock + 1, currentBlock);
+                for (const event of events) {
+                    const { subscriber, agentAddress, feeAmount, platformCut, creatorCut } = (event as any).args;
+                    const txHash = event.transactionHash;
+                    console.log(`[PAY RELAY] Recognized Payment from ${subscriber} for Agent ${agentAddress}`);
 
-        // Store so a frontend polling endpoint could securely retrieve it
-        pendingInvoices.set(txHash, jwt);
-    });
+                    // Generate Token
+                    const jwt = generateAccessToken(subscriber, agentAddress, txHash);
+
+                    // Store so a frontend polling endpoint could securely retrieve it
+                    pendingInvoices.set(txHash, jwt);
+                }
+                lastProcessedBlock = currentBlock;
+            }
+        } catch (error) {
+            console.error('[PAY RELAY] Error polling events:', error);
+        }
+    }, 10000); // 10 seconds
 }

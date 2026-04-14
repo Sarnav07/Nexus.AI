@@ -33,7 +33,8 @@ function useRawChainId() {
 
 const ChainMismatchBanner = () => {
   const { address } = useAccount();
-  const { switchChain, isPending } = useSwitchChain();
+  const { switchChain, isPending, error } = useSwitchChain();
+  const [switchError, setSwitchError] = useState<string | null>(null);
 
   // Use raw provider chain ID — reliable even when wagmi marks connection as unsupported
   const rawChainId = useRawChainId();
@@ -65,12 +66,23 @@ const ChainMismatchBanner = () => {
             </p>
 
             <button
-              onClick={() => switchChain({ chainId: SUPPORTED_CHAIN_ID })}
+              onClick={async () => {
+                setSwitchError(null);
+                try {
+                  await switchChain({ chainId: SUPPORTED_CHAIN_ID });
+                } catch (err: any) {
+                  setSwitchError(err.message || 'Failed to switch network');
+                }
+              }}
               disabled={isPending}
               className="flex-shrink-0 px-3 py-1.5 text-[11px] font-mono font-semibold uppercase tracking-wider text-amber-900 bg-amber-400/90 hover:bg-amber-400 rounded-inner transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isPending ? 'Switching...' : 'Switch Network'}
             </button>
+
+            {switchError && (
+              <p className="text-xs text-red-400 ml-2">{switchError}</p>
+            )}
           </div>
         </motion.div>
       )}

@@ -126,7 +126,7 @@ const Navbar = () => {
             ))}
 
             {/* Wallet Area */}
-            <div className="ml-4">
+            <div className="ml-4 flex items-center gap-2">
               {!isConnected ? (
                 <button
                   id="connect-wallet-btn"
@@ -136,34 +136,62 @@ const Navbar = () => {
                   Connect Wallet
                 </button>
               ) : isWrongChain ? (
-                <button
-                  onClick={() => setWalletModalOpen(true)}
-                  className="px-4 py-2 bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono text-xs font-semibold rounded-inner transition-all hover:bg-amber-500/20"
-                >
-                  ⚠ Wrong Network
-                </button>
-              ) : (
-                /* Connected — pill triggers portal dropdown */
-                <button
-                  ref={pillRef}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowDropdown((p) => !p);
-                  }}
-                  className="flex items-center gap-2 px-4 py-2 border border-foreground/10 text-foreground/80 font-mono text-xs rounded-inner transition-all hover:bg-foreground/[0.05] hover:border-foreground/20"
-                  aria-label="Wallet account menu"
-                  aria-expanded={showDropdown}
-                >
-                  <div className="w-1.5 h-1.5 rounded-full bg-neon-mint" />
-                  <span>{shortAddr(address!)}</span>
-                  <motion.span
-                    animate={{ rotate: showDropdown ? 180 : 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="text-muted-foreground ml-0.5 text-[10px]"
+                <>
+                  <button
+                    onClick={() => setWalletModalOpen(true)}
+                    className="px-4 py-2 bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono text-xs font-semibold rounded-inner transition-all hover:bg-amber-500/20"
                   >
-                    ▾
-                  </motion.span>
-                </button>
+                    ⚠ Wrong Network
+                  </button>
+                  {/* Disconnect Button */}
+                  <button
+                    onClick={() => {
+                      console.log('Disconnect button clicked (wrong network)');
+                      disconnect();
+                      setTimeout(() => window.location.reload(), 500);  // Reload after disconnect
+                    }}
+                    className="px-3 py-2 text-xs font-mono text-muted-foreground hover:text-foreground/90 hover:bg-foreground/[0.04] rounded-inner transition-colors"
+                    title="Disconnect Wallet"
+                  >
+                    Disconnect
+                  </button>
+                </>
+              ) : (
+                <>
+                  {/* Connected — pill triggers portal dropdown */}
+                  <button
+                    ref={pillRef}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowDropdown((p) => !p);
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 border border-foreground/10 text-foreground/80 font-mono text-xs rounded-inner transition-all hover:bg-foreground/[0.05] hover:border-foreground/20"
+                    aria-label="Wallet account menu"
+                    aria-expanded={showDropdown}
+                  >
+                    <div className="w-1.5 h-1.5 rounded-full bg-neon-mint" />
+                    <span>{shortAddr(address!)}</span>
+                    <motion.span
+                      animate={{ rotate: showDropdown ? 180 : 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="text-muted-foreground ml-0.5 text-[10px]"
+                    >
+                      ▾
+                    </motion.span>
+                  </button>
+                  {/* Disconnect Button */}
+                  <button
+                    onClick={() => {
+                      console.log('Disconnect button clicked');
+                      disconnect();
+                      setTimeout(() => window.location.reload(), 500);  // Reload after disconnect
+                    }}
+                    className="px-3 py-2 text-xs font-mono text-muted-foreground hover:text-foreground/90 hover:bg-foreground/[0.04] rounded-inner transition-colors"
+                    title="Disconnect Wallet"
+                  >
+                    Disconnect
+                  </button>
+                </>
               )}
             </div>
           </div>

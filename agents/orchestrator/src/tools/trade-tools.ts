@@ -20,7 +20,7 @@ export const buildTradePayload = tool({
     amountUSDC: z.number().positive().describe('Trade amount in USDC terms'),
     referenceTick: z.number().int().default(0).describe('Reference pool tick'),
     volatilityBps: z.number().int().min(10).max(5000).default(400),
-    feeTier: z.union([z.literal(100), z.literal(500), z.literal(3000), z.literal(10000)]).default(3000),
+    feeTier: z.enum(['100', '500', '3000', '10000']).default('3000'),
     riskProfile: z.enum(['conservative', 'balanced', 'aggressive']).default('balanced'),
   }),
   execute: async ({ action, tokenIn, tokenOut, amountUSDC, referenceTick, volatilityBps, feeTier, riskProfile }) => {
@@ -31,7 +31,7 @@ export const buildTradePayload = tool({
       amountUSDC,
       referenceTick,
       volatilityBps,
-      feeTier,
+      feeTier: parseInt(feeTier),
       riskProfile,
     });
 
@@ -83,7 +83,7 @@ export const simulateTradeExecution = tool({
     userAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
     referenceTick: z.number().int().default(0),
     volatilityBps: z.number().int().min(10).max(5000).default(400),
-    feeTier: z.union([z.literal(100), z.literal(500), z.literal(3000), z.literal(10000)]).default(3000),
+    feeTier: z.enum(['100', '500', '3000', '10000']).default('3000'),
     riskProfile: z.enum(['conservative', 'balanced', 'aggressive']).default('balanced'),
   }),
   execute: async ({ action, tokenIn, tokenOut, amountUSDC, userAddress, referenceTick, volatilityBps, feeTier, riskProfile }) => {
@@ -94,7 +94,7 @@ export const simulateTradeExecution = tool({
       amountUSDC,
       referenceTick,
       volatilityBps,
-      feeTier,
+      feeTier: parseInt(feeTier),
       riskProfile,
       userAddress,
     });
@@ -142,7 +142,7 @@ export const simulateTradeExecution = tool({
           { step: 2, name: 'Signal Intent', status: 'READY', details: 'SignalRegistry calldata prepared' },
           { step: 3, name: 'Execution Payload', status: 'READY', details: 'Calldata-ready bundle for signer' },
         ],
-        status: 'WAITING_FOR_SIGNATURE',
+        status: 'READY_FOR_ORCHESTRATOR_SIGNING',
         executionPayload: execution,
         signalIntent: signalPayload,
         timestamp: new Date().toISOString(),
