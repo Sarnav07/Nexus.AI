@@ -238,6 +238,7 @@ const Leaderboard = () => {
                     <tbody className="divide-y divide-foreground/[0.03]">
                       {signals.map((sig, i) => (
                         <motion.tr
+                          layout
                           key={sig.id}
                           initial={{ opacity: 0, y: 4 }}
                           animate={{ opacity: 1, y: 0 }}

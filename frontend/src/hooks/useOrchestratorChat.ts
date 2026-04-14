@@ -124,3 +124,69 @@ export function useOrchestratorChat() {
 
   return { messages, sendMessage, isStreaming, cancelStream, clearHistory, error };
 }
+
+/**
+ * useNonStreamingChat
+ * A mobile fallback hook for spotty connections.
+ * Calls the synchronous POST /api/chat/complete endpoint.
+ */
+export function useNonStreamingChat() {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [isPending, setIsPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const sendMessage = useCallback(async (userInput: string) => {
+    if (!userInput.trim() || isPending) return;
+
+    setError(null);
+    const userMessage: ChatMessage = { role: 'user', content: userInput.trim() };
+    const nextMessages = [...messages, userMessage];
+    setMessages(nextMessages);
+    setIsPending(true);
+
+    try {
+      const res = await fetch(`${ORCHESTRATOR_URL}/api/chat/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: nextMessages.map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`Orchestrator returned ${res.status}: ${await res.text()}`);
+      }
+
+      const data = await res.json();
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: data.content || data.reply || '' },
+      ]);
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error
+          ? err.message.includes('Failed to fetch') || err.message.includes('NetworkError')
+            ? 'Orchestrator offline. Start it with `cd agents && npm run dev`.'
+            : err.message
+          : 'Unknown error';
+
+      setError(msg);
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: `⚠ ${msg}` },
+      ]);
+    } finally {
+      setIsPending(false);
+    }
+  }, [messages, isPending]);
+
+  const clearHistory = useCallback(() => {
+    setMessages([]);
+    setError(null);
+  }, []);
+
+  return { messages, sendMessage, isPending, clearHistory, error };
+}

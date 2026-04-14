@@ -27,6 +27,7 @@ const NAV_ITEMS = [
   { label: "Dashboard",   path: "/dashboard" },
   { label: "Terminal",    path: "/terminal" },
   { label: "Leaderboard", path: "/leaderboard" },
+  { label: "Activity",    path: "/activity" },
 ];
 
 const statusColors: Record<string, string> = {
