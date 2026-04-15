@@ -1,0 +1,148 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* The Void */
+    --background: 222 60% 2%;
+    --foreground: 0 0% 100%;
+
+    /* Elevated surfaces */
+    --card: 230 24% 6%;
+    --card-foreground: 0 0% 100%;
+
+    --popover: 230 24% 6%;
+    --popover-foreground: 0 0% 100%;
+
+    /* Neon Chartreuse - AI Actions */
+    --primary: 72 100% 50%;
+    --primary-foreground: 222 60% 2%;
+
+    /* Ghost/secondary */
+    --secondary: 0 0% 100%;
+    --secondary-foreground: 0 0% 100%;
+
+    /* Muted metallic */
+    --muted: 230 12% 15%;
+    --muted-foreground: 228 10% 53%;
+
+    /* Accent - subtle lift */
+    --accent: 230 12% 10%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 345 82% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Borders - barely visible */
+    --border: 0 0% 100%;
+    --input: 230 12% 15%;
+    --ring: 72 100% 50%;
+
+    --radius: 1.5rem;
+
+    /* Semantic tokens */
+    --neon-mint: 160 100% 50%;
+    --neon-cyan: 187 100% 45%;
+    --neon-pink: 330 100% 48%;
+    --neon-violet: 274 72% 48%;
+    --warning-orange: 36 100% 50%;
+
+    /* Sidebar */
+    --sidebar-background: 230 24% 4%;
+    --sidebar-foreground: 0 0% 92%;
+    --sidebar-primary: 72 100% 50%;
+    --sidebar-primary-foreground: 222 60% 2%;
+    --sidebar-accent: 230 12% 10%;
+    --sidebar-accent-foreground: 0 0% 92%;
+    --sidebar-border: 0 0% 100%;
+    --sidebar-ring: 72 100% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border/[0.04];
+  }
+
+  body {
+    @apply bg-background text-foreground/[0.92] antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  h1, h2, h3 {
+    font-family: 'Playfair Display', Georgia, serif;
+    letter-spacing: -0.03em;
+  }
+}
+
+/* Global Grain Overlay */
+.grain-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 128px 128px;
+}
+
+/* Glassmorphism utility */
+.glass {
+  backdrop-filter: blur(32px) saturate(180%);
+  background: rgba(13, 14, 20, 0.4);
+}
+
+/* Custom scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+
+/* Mono data font */
+.font-mono-data {
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Display serif */
+.font-display {
+  font-family: 'Playfair Display', Georgia, serif;
+  letter-spacing: -0.03em;
+}
+
+/* Ambient orb */
+.ambient-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+}
+
+/* Bento card base */
+.bento-card {
+  background: hsl(230 24% 6%);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  box-shadow: 0px 8px 32px rgba(0, 0, 0, 0.4);
+  border-radius: 24px;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Terminal styling */
+.terminal-window {
+  background: #020203;
+  border: 1px solid rgba(0, 229, 255, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+}

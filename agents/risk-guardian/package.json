@@ -1,23 +1,25 @@
 {
-  "name": "@nexus/risk-guardian",
+  "name": "nexus-risk-guardian",
   "version": "1.0.0",
+  "description": "Nexus.AI Risk Guardian Agent - Position limits and risk validation",
+  "main": "dist/index.js",
   "type": "module",
-  "main": "src/index.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "test": "vitest"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
   "dependencies": {
-    "chalk": "^5.6.2",
-    "ethers": "^6.16.0",
-    "zod": "^4.3.6"
+    "@hono/node-server": "^1.19.14",
+    "dotenv": "^16.0.0",
+    "hono": "^4.0.0",
+    "viem": "^2.0.0"
   },
   "devDependencies": {
-    "@types/node": "^25.5.2",
-    "ts-node": "^10.9.2",
-    "typescript": "^6.0.2"
+    "@types/node": "^20.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
   }
 }

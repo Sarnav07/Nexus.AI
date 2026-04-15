@@ -15,7 +15,7 @@ import {AgentLeaderboard} from "../src/AgentLeaderboard.sol";
  *     forge script script/Deploy.s.sol:Deploy \
  *       --rpc-url xlayer_testnet \
  *       --broadcast \
- *       --chain-id 195
+ *       --chain-id 1952
  */
 contract Deploy is Script {
     function run() external {

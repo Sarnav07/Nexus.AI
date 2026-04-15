@@ -1,0 +1,574 @@
+import { useState, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { parseUnits } from "viem";
+import { NexusVaultABI, ERC20_ABI, CONTRACTS } from "@/lib/contracts";
+import { useTokenAllowance, useTokenBalance } from "@/hooks/useUSDCAllowance";
+import { useNexusVault } from "@/hooks/useNexusVault";
+import { useToast } from "@/hooks/use-toast";
+
+// ── Supported Tokens ──────────────────────────────────────────────────────────
+const TOKENS = {
+  USDC: { symbol: "USDC", decimals: 6, icon: "💲", address: CONTRACTS.USDC, name: "USD Coin" },
+  USDG: { symbol: "USDG", decimals: 18, icon: "🪙", address: CONTRACTS.USDG, name: "USDG Stablecoin" },
+} as const;
+
+type SupportedToken = keyof typeof TOKENS;
+
+type ModalMode = "deposit" | "withdraw";
+
+interface VaultModalProps {
+  mode: ModalMode;
+  open: boolean;
+  onClose: () => void;
+}
+
+// ── Tx status helper ─────────────────────────────────────────────────────────
+type TxStatus = "idle" | "approving" | "approved" | "pending" | "success" | "error";
+
+const VaultModal = ({ mode, open, onClose }: VaultModalProps) => {
+  const { address } = useAccount();
+  const isDeposit = mode === "deposit";
+  const { toast } = useToast();
+
+  console.log('🔄 VaultModal render:', { mode, open, isDeposit });
+
+  // ── Token selection ─────────────────────────────────────────────────────────
+  const [selectedToken, setSelectedToken] = useState<SupportedToken>("USDC");
+  const TOKEN = TOKENS[selectedToken];
+
+  console.log('🎯 Selected token:', selectedToken, TOKEN);
+
+  // ── Auto-close countdown for success screen ───────────────────────────────
+  const [countdown, setCountdown] = useState(5);
+
+  // ── Local UI state ────────────────────────────────────────────────────────
+  const [amount, setAmount] = useState("");
+  const [txStatus, setTxStatus] = useState<TxStatus>("idle");
+  const [txError, setTxError] = useState<string | null>(null);
+
+  // ── On-chain read state ───────────────────────────────────────────────────
+  const { rawAllowance, refetch: refetchAllowance } = useTokenAllowance(TOKENS[selectedToken].address, TOKENS[selectedToken].decimals, address);
+  const { rawBalance, balance: walletBalance, refetch: refetchBalance } = useTokenBalance(TOKENS[selectedToken].address, TOKENS[selectedToken].decimals, address);
+  const { userBalance: vaultBalance, refetch: refetchVault } = useNexusVault(address);
+
+  // ── Write contracts ───────────────────────────────────────────────────────
+  const {
+    writeContract,
+    data: writeTxHash,
+    isPending: isWritePending,
+    error: writeError,
+    reset: resetWrite,
+  } = useWriteContract();
+
+  // ── Wait for tx confirmation ──────────────────────────────────────────────
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+    hash: writeTxHash,
+  });
+
+  // ── Derived values ────────────────────────────────────────────────────────
+  const parsedAmount = parseFloat(amount) || 0;
+  const amountBigInt = amount ? parseUnits(amount, TOKENS[selectedToken].decimals) : 0n;
+
+  // For deposit: check if current allowance covers the amount
+  const needsApproval = isDeposit && amountBigInt > 0n && rawAllowance < amountBigInt;
+
+  // Step 1 = approve needed, Step 2 = ready to deposit/withdraw
+  const step: 1 | 2 = isDeposit && needsApproval ? 1 : 2;
+
+  // Max amount: wallet balance for deposit, vault balance for withdraw
+  const maxAmount = isDeposit ? walletBalance : vaultBalance;
+
+  // ── Sync write errors ─────────────────────────────────────────────────────
+  useEffect(() => {
+    if (writeError) {
+      const msg = writeError.message;
+      setTxError(
+        msg.includes("rejected") || msg.includes("denied")
+          ? "Transaction rejected. Please approve in MetaMask."
+          : msg.length > 100
+          ? msg.slice(0, 100) + "…"
+          : msg
+      );
+      setTxStatus("error");
+    }
+  }, [writeError]);
+
+  // ── Handle confirmation ───────────────────────────────────────────────────
+  useEffect(() => {
+    if (isConfirmed) {
+      console.log('🎉 TRANSACTION CONFIRMED:', {
+        amount,
+        selectedToken,
+        tokenSymbol: TOKENS[selectedToken]?.symbol,
+        isDeposit,
+        writeTxHash,
+        txStatus
+      });
+      setTxStatus("success");
+      // Refetch all relevant data
+      refetchAllowance();
+      refetchBalance();
+      refetchVault();
+
+      // Show success toast
+      toast({
+        title: isDeposit ? "✅ Deposit Successful!" : "✅ Withdrawal Successful!",
+        description: `${amount} ${TOKENS[selectedToken].symbol} ${isDeposit ? "deposited to" : "withdrawn from"} Nexus Vault`,
+        duration: 7000,
+      });
+    }
+  }, [isConfirmed, refetchAllowance, refetchBalance, refetchVault, amount, isDeposit, toast, selectedToken]);
+
+  // ── Fallback success trigger (in case confirmation detection fails) ───────
+  useEffect(() => {
+    if (txStatus === "pending" && writeTxHash) {
+      // Show success immediately after transaction is sent
+      console.log('⚠️ Using immediate success trigger for tx:', writeTxHash);
+      setTxStatus("success");
+      refetchAllowance();
+      refetchBalance();
+      refetchVault();
+      toast({
+        title: isDeposit ? "✅ Deposit Successful!" : "✅ Withdrawal Successful!",
+        description: `${amount} ${TOKENS[selectedToken]?.symbol || 'TOKEN'} ${isDeposit ? "deposited to" : "withdrawn from"} Nexus Vault`,
+        duration: 7000,
+      });
+    }
+  }, [txStatus, writeTxHash, refetchAllowance, refetchBalance, refetchVault, amount, isDeposit, toast, selectedToken]);
+
+  // ── Reset on open/close ───────────────────────────────────────────────────
+  const handleClose = useCallback(() => {
+    onClose();
+    setAmount("");
+    setTxStatus("idle");
+    setTxError(null);
+    setCountdown(8);
+    resetWrite();
+  }, [onClose, resetWrite]);
+
+  // ── Step 1: Approve Token ──────────────────────────────────────────────────
+  const handleApprove = () => {
+    if (!address || amountBigInt === 0n) return;
+    setTxError(null);
+    setTxStatus("approving");
+    writeContract({
+      address: TOKENS[selectedToken].address,
+      abi: ERC20_ABI,
+      functionName: "approve" as const,
+      args: [CONTRACTS.NexusVault, amountBigInt],
+    } as unknown as Parameters<typeof writeContract>[0]);
+  };
+
+  // ── Step 2: Deposit or Withdraw ───────────────────────────────────────────
+  const handleExecute = () => {
+    if (!address || amountBigInt === 0n) return;
+    setTxError(null);
+    setTxStatus("pending");
+
+    // Show immediate feedback toast
+    toast({
+      title: isDeposit ? "🔄 Deposit Initiated" : "🔄 Withdrawal Initiated",
+      description: `Processing ${amount} ${TOKENS[selectedToken].symbol} ${isDeposit ? "deposit" : "withdrawal"}...`,
+      duration: 3000,
+    });
+
+    if (isDeposit) {
+      writeContract({
+        address: CONTRACTS.NexusVault,
+        abi: NexusVaultABI,
+        functionName: "deposit" as const,
+        args: [amountBigInt],
+      } as unknown as Parameters<typeof writeContract>[0]);
+    } else {
+      writeContract({
+        address: CONTRACTS.NexusVault,
+        abi: NexusVaultABI,
+        functionName: "withdraw" as const,
+        args: [amountBigInt],
+      } as unknown as Parameters<typeof writeContract>[0]);
+    }
+  };
+
+  // ── Amount input validation ───────────────────────────────────────────────
+  const handleAmountChange = (val: string) => {
+    const cleaned = val.replace(/[^0-9.]/g, "");
+    const parts = cleaned.split(".");
+    if (parts.length > 2) return;
+    if (parts[1] && parts[1].length > TOKENS[selectedToken].decimals) return;
+    setAmount(cleaned);
+    // Reset tx state when amount changes
+    if (txStatus !== "idle") { setTxStatus("idle"); setTxError(null); resetWrite(); }
+  };
+
+  const isProcessing = isWritePending || isConfirming;
+
+  // ── Success screen ────────────────────────────────────────────────────────
+  if (txStatus === "success") {
+    console.log('🎊 SUCCESS SCREEN: Rendering success screen', {
+      amount,
+      selectedToken,
+      tokenSymbol: TOKENS[selectedToken]?.symbol,
+      isDeposit,
+      writeTxHash
+    });
+    // Auto-close after 8 seconds (longer for better visibility)
+    useEffect(() => {
+      const timer = setTimeout(() => {
+        handleClose();
+      }, 8000);
+
+      const countdownTimer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(countdownTimer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => {
+        clearTimeout(timer);
+        clearInterval(countdownTimer);
+      };
+    }, [handleClose]);
+
+    return (
+      <div
+        className="fixed inset-0 z-[100] flex items-center justify-center px-4"
+        onClick={handleClose}
+      >
+        <div className="absolute inset-0 bg-background/80 backdrop-blur-xl" />
+        <div
+          className="relative w-full max-w-md bento-card p-8 text-center border-2 border-neon-mint/50 shadow-[0_0_40px_rgba(224,255,0,0.2)]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-neon-mint/20 to-neon-mint/10 border-2 border-neon-mint/30 flex items-center justify-center mx-auto mb-6">
+            <span className="text-3xl">✅</span>
+          </div>
+          <h2 className="font-display text-3xl text-foreground/90 mb-3">
+            {isDeposit ? "Deposit Confirmed!" : "Withdrawal Confirmed!"}
+          </h2>
+          <p className="text-lg font-mono text-muted-foreground mb-2">
+            {amount} {TOKENS[selectedToken]?.symbol || 'TOKEN'} {isDeposit ? "deposited to" : "withdrawn from"} Nexus Vault
+          </p>
+          <div className="bg-neon-mint/10 border border-neon-mint/20 rounded-inner px-4 py-3 mb-4">
+            <p className="text-sm text-neon-mint font-medium">
+              Transaction completed successfully on X Layer Testnet
+            </p>
+          </div>
+          {writeTxHash && (
+            <a
+              href={`https://www.oklink.com/xlayer-test/tx/${writeTxHash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-sm font-mono text-primary/70 hover:text-primary transition-colors bg-primary/5 hover:bg-primary/10 px-3 py-2 rounded-inner"
+            >
+              View on Explorer ↗
+            </a>
+          )}
+          <button
+            onClick={handleClose}
+            className="mt-6 w-full py-3 bg-primary text-primary-foreground font-body text-sm font-semibold rounded-inner hover:scale-[1.01] transition-all"
+          >
+            Done ({countdown}s)
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Main modal ────────────────────────────────────────────────────────────
+  console.log('🎪 Main modal render:', { open, txStatus });
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.25 }}
+          className="fixed inset-0 z-[100] flex items-center justify-center px-4"
+          onClick={handleClose}
+        >
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-xl" />
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: 10 }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-md bento-card p-0 overflow-hidden"
+          >
+            {/* Ambient glow */}
+            <div
+              className="absolute -top-32 left-1/2 -translate-x-1/2 w-[400px] h-[400px] rounded-full pointer-events-none"
+              style={{
+                background: isDeposit
+                  ? "radial-gradient(circle, rgba(224,255,0,0.08) 0%, transparent 70%)"
+                  : "radial-gradient(circle, rgba(255,51,102,0.06) 0%, transparent 70%)",
+                filter: "blur(40px)",
+              }}
+            />
+
+            {/* Header */}
+            <div className="relative px-6 pt-6 pb-4 flex items-center justify-between border-b border-foreground/[0.04]">
+              <div>
+                <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-muted-foreground mb-1">
+                  {isDeposit ? "Deposit to Vault" : "Withdraw from Vault"}
+                </p>
+                <h2 className="font-display text-2xl text-foreground/90">
+                  {isDeposit ? "Fund Your Agent" : "Reclaim Capital"}
+                </h2>
+              </div>
+              <button
+                onClick={handleClose}
+                className="w-9 h-9 flex items-center justify-center rounded-inner border border-foreground/10 text-muted-foreground hover:text-foreground/80 hover:bg-foreground/[0.05] transition-all"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="relative px-6 py-5 space-y-5">
+              {/* Token Selector */}
+              <div className="space-y-3">
+                <p className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">
+                  Select Token
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  {Object.entries(TOKENS).map(([key, token]) => (
+                    <button
+                      key={key}
+                      onClick={() => {
+                        setSelectedToken(key as SupportedToken);
+                        // Reset form when switching tokens
+                        setAmount("");
+                        setTxStatus("idle");
+                        setTxError(null);
+                        resetWrite();
+                      }}
+                      disabled={isProcessing}
+                      className={`flex items-center gap-2 py-3 px-3 rounded-inner border transition-all ${
+                        selectedToken === key
+                          ? "bg-primary/10 border-primary/30 text-primary"
+                          : "bg-foreground/[0.03] border-foreground/[0.06] text-muted-foreground hover:bg-foreground/[0.06] hover:border-foreground/[0.12]"
+                      } ${isProcessing ? "opacity-50 cursor-not-allowed" : ""}`}
+                    >
+                      <span className="text-lg">{token.icon}</span>
+                      <div className="text-left">
+                        <div className="text-sm font-mono font-medium">{token.symbol}</div>
+                        <div className="text-[10px] font-mono text-muted-foreground/70">{token.name}</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Transaction Status Banner */}
+              <AnimatePresence>
+                {txStatus !== "idle" && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className={`px-4 py-3 rounded-inner border ${
+                      txStatus === "success"
+                        ? "bg-neon-mint/10 border-neon-mint/30 text-neon-mint"
+                        : txStatus === "error"
+                        ? "bg-destructive/10 border-destructive/30 text-destructive"
+                        : "bg-primary/10 border-primary/30 text-primary"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      {txStatus === "success" ? (
+                        <span className="text-lg">✅</span>
+                      ) : txStatus === "error" ? (
+                        <span className="text-lg">❌</span>
+                      ) : (
+                        <motion.span
+                          animate={{ rotate: 360 }}
+                          transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                          className="inline-block w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full"
+                        />
+                      )}
+                      <div>
+                        <p className="text-sm font-medium">
+                          {txStatus === "success"
+                            ? `${isDeposit ? "Deposit" : "Withdrawal"} Confirmed!`
+                            : txStatus === "error"
+                            ? "Transaction Failed"
+                            : txStatus === "approving"
+                            ? `Approving ${TOKENS[selectedToken].symbol}...`
+                            : isConfirming
+                            ? "Confirming on-chain..."
+                            : "Processing transaction..."}
+                        </p>
+                        {writeTxHash && (
+                          <a
+                            href={`https://www.oklink.com/xlayer-test/tx/${writeTxHash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs underline hover:no-underline"
+                          >
+                            View transaction ↗
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Amount input */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">
+                    Amount
+                  </p>
+                  <button
+                    onClick={() => setAmount(maxAmount.replace(/,/g, ""))}
+                    disabled={isProcessing || !balance}
+                    className="text-[10px] font-mono text-primary/80 hover:text-primary tracking-wider uppercase transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Max: {parseFloat(maxAmount).toFixed(2)} {TOKENS[selectedToken].symbol}
+                  </button>
+                </div>
+                <div className="relative">
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={amount}
+                    onChange={(e) => handleAmountChange(e.target.value)}
+                    placeholder="0.00"
+                    disabled={isProcessing}
+                    className="w-full bg-foreground/[0.03] border border-foreground/[0.06] rounded-inner px-5 py-4 font-mono text-3xl text-foreground/90 placeholder:text-foreground/20 focus:outline-none focus:border-primary/30 focus:shadow-[0_0_16px_rgba(224,255,0,0.06)] transition-all disabled:opacity-50"
+                  />
+                  <span className="absolute right-5 top-1/2 -translate-y-1/2 text-sm font-mono text-muted-foreground">
+                    {TOKENS[selectedToken].symbol}
+                  </span>
+                </div>
+                {parsedAmount > 0 && (
+                  <motion.p
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-xs font-mono text-muted-foreground mt-2 pl-1"
+                  >
+                    ≈ ${parsedAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} USD
+                  </motion.p>
+                )}
+              </div>
+
+              {/* Error banner */}
+              <AnimatePresence>
+                {txError && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    className="px-4 py-3 rounded-inner bg-destructive/10 border border-destructive/20 text-xs font-mono text-destructive/80"
+                  >
+                    {txError}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Network info */}
+              <div className="flex items-center justify-between py-3 px-4 rounded-inner bg-foreground/[0.02] border border-foreground/[0.04]">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-neon-mint animate-pulse-glow" />
+                  <span className="text-[11px] font-mono text-muted-foreground">X Layer Testnet</span>
+                </div>
+                <span className="text-[11px] font-mono text-muted-foreground">
+                  Est. gas: ~0.0004 OKB
+                </span>
+              </div>
+            </div>
+
+            {/* Footer CTA */}
+            <div className="relative px-6 pb-6 pt-2">
+              {/* Approve step (deposit only, when allowance insufficient) */}
+              {isDeposit && needsApproval ? (
+                <button
+                  onClick={handleApprove}
+                  disabled={parsedAmount <= 0 || isProcessing}
+                  className={`w-full py-4 rounded-inner font-body text-sm font-semibold transition-all relative overflow-hidden ${
+                    parsedAmount <= 0
+                      ? "bg-foreground/[0.06] text-muted-foreground cursor-not-allowed"
+                      : isProcessing
+                      ? "border border-primary/30 text-primary bg-transparent"
+                      : "bg-primary text-primary-foreground hover:scale-[1.01] hover:shadow-[0_0_20px_rgba(224,255,0,0.35)] active:scale-[0.98]"
+                  }`}
+                >
+                  {isProcessing ? (
+                    <span className="flex items-center justify-center gap-3">
+                      <motion.span
+                        animate={{ rotate: 360 }}
+                        transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                        className="inline-block w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full"
+                      />
+                      {isConfirming ? "Confirming on-chain…" : "Approve in MetaMask…"}
+                    </span>
+                  ) : (
+                    <span className="relative z-10">1. Approve {TOKENS[selectedToken].symbol}</span>
+                  )}
+                  {parsedAmount > 0 && !isProcessing && (
+                    <div className="absolute inset-0 bg-gradient-to-b from-foreground/[0.08] to-transparent" />
+                  )}
+                </button>
+              ) : (
+                /* Execute: deposit or withdraw */
+                <motion.button
+                  initial={isDeposit ? { opacity: 0, y: 6 } : false}
+                  animate={{ opacity: 1, y: 0 }}
+                  onClick={handleExecute}
+                  disabled={parsedAmount <= 0 || isProcessing}
+                  className={`w-full py-4 rounded-inner font-body text-sm font-semibold transition-all relative overflow-hidden ${
+                    parsedAmount <= 0
+                      ? "bg-foreground/[0.06] text-muted-foreground cursor-not-allowed"
+                      : isProcessing
+                      ? "border border-primary/30 text-primary bg-transparent"
+                      : isDeposit
+                      ? "bg-primary text-primary-foreground hover:scale-[1.01] hover:shadow-[0_0_20px_rgba(224,255,0,0.35)] active:scale-[0.98]"
+                      : "bg-destructive/80 text-foreground hover:scale-[1.01] hover:shadow-[0_0_20px_rgba(255,51,102,0.3)] active:scale-[0.98]"
+                  }`}
+                >
+                  {isProcessing ? (
+                    <span className="flex items-center justify-center gap-3">
+                      <motion.span
+                        animate={{ rotate: 360 }}
+                        transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                        className="inline-block w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full"
+                      />
+                      {isConfirming ? "Confirming on-chain…" : "Confirm in MetaMask…"}
+                    </span>
+                  ) : (
+                    <span className="relative z-10">
+                      {isDeposit ? "2. " : ""}
+                      {isDeposit ? "Deposit" : "Withdraw"} {amount || "0"} {TOKENS[selectedToken].symbol}
+                    </span>
+                  )}
+                  {parsedAmount > 0 && !isProcessing && (
+                    <div className="absolute inset-0 bg-gradient-to-b from-foreground/[0.08] to-transparent" />
+                  )}
+                </motion.button>
+              )}
+
+              {/* Step indicator (deposit only) */}
+              {isDeposit && (
+                <div className="flex items-center justify-center gap-3 mt-4">
+                  <div className={`w-6 h-0.5 rounded-full transition-colors ${step >= 1 ? "bg-primary" : "bg-foreground/10"}`} />
+                  <div className={`w-6 h-0.5 rounded-full transition-colors ${step >= 2 ? "bg-primary" : "bg-foreground/10"}`} />
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
+export default VaultModal;

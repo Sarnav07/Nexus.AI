@@ -1,13 +1,12 @@
 {
   "name": "nexus-orchestrator",
-  "version": "0.1.0",
-  "private": true,
+  "version": "1.0.0",
+  "description": "Nexus.AI Orchestrator Agent - Routes trades and manages multi-agent coordination",
+  "main": "dist/index.js",
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "start": "tsx src/index.ts",
-    "typecheck": "tsc --noEmit",
     "build": "tsc",
+<<<<<<< HEAD
     "test": "tsx --test src/tools/*.test.ts",
     "farm": "tsx src/scripts/farm_txs.ts"
   },
@@ -23,10 +22,25 @@
     "hono": "^4.7.0",
     "@hono/node-server": "^1.14.0",
     "dotenv": "^16.4.0"
+=======
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@hono/node-server": "^1.19.14",
+    "dotenv": "^16.0.0",
+    "hono": "^4.0.0",
+    "node-cron": "^3.0.0",
+    "viem": "^2.0.0"
+>>>>>>> running_agent
   },
   "devDependencies": {
-    "typescript": "^5.7.0",
-    "tsx": "^4.19.0",
-    "@types/node": "^22.0.0"
+    "@types/node": "^20.0.0",
+    "@types/node-cron": "^3.0.11",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
   }
 }

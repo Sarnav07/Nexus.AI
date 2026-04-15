@@ -126,9 +126,122 @@ npm run farm
 
 | Contract           | Address                                      |
 |--------------------|----------------------------------------------|
-| NexusVault         | `0x7b6483fbb5d1716a1e26cb9d99257673dfd6eee7` |
-| SignalRegistry     | `0x1c9118addb2f3308396ce3412dd440771442b8af` |
-| AgentLeaderboard   | `0xaaa0f4583d3529aa9a99b736f7971983f16e7972` |
+| NexusVault         | `0x9DDa87f22F2a29D43b36417EA8eAEB1F68CFb689` |
+| SignalRegistry     | `0x66B39854C90d9898dBEE1Aa1E24F541A731DC925` |
+| AgentLeaderboard   | `0xE606422f053Cbb2F1961CE761fEe8c2a06f4db60` |
+
+## Quick Start
+
+1. **Install Dependencies**:
+```bash
+# Install root dependencies
+npm install
+
+# Install agent dependencies
+cd agents/orchestrator && npm install
+cd ../specialist && npm install
+cd ../risk-guardian && npm install
+cd ../pay-relay && npm install
+```
+
+2. **Configure Environment**:
+```bash
+# Copy and edit environment files
+cp agents/orchestrator/.env.example agents/orchestrator/.env
+cp agents/specialist/.env.example agents/specialist/.env
+# Edit .env files with your actual API keys
+```
+
+3. **Build Contracts** (if not already built):
+```bash
+cd contracts
+forge build
+node extract_abis.js
+```
+
+4. **Start Agents**:
+```bash
+# Terminal 1: Orchestrator (with autonomous trading)
+cd agents/orchestrator && npm run dev
+
+# Terminal 2: Specialist (yield farming)
+cd agents/specialist && npm run dev
+
+# Terminal 3: Risk Guardian
+cd agents/risk-guardian && npm run dev
+
+# Terminal 4: Pay Relay
+cd agents/pay-relay && npm run dev
+```
+
+5. **Start Frontend**:
+```bash
+cd frontend && npm run dev
+```
+
+## OnchainOS & Uniswap Integration
+
+This project integrates OKX OnchainOS skills for DeFi operations:
+
+- **okx-dex-swap**: Token swapping via Uniswap V3 on X Layer
+- **okx-dex-market**: Real-time price feeds and market data
+- **okx-agentic-wallet**: Secure wallet operations for trading
+- **okx-onchain-gateway**: Transaction broadcasting and monitoring
+
+Uniswap V3 skills enable:
+- Concentrated liquidity provision
+- Automated market making
+- Gas-optimized swaps with slippage protection
+
+## Working Mechanics
+
+1. **User deposits USDC** into NexusVault smart contract
+2. **Orchestrator AI** analyzes market conditions using OnchainOS skills
+3. **Risk Guardian** validates trades against position limits
+4. **Yield Farmer** executes Uniswap V3 operations (swaps/LP)
+5. **Signal Registry** logs all trading actions on-chain
+6. **Pay Relay** enables x402 micropayments for premium signals
+7. **Agent Leaderboard** tracks PnL and distributes fees
+
+## X Layer Ecosystem Positioning
+
+Nexus.AI demonstrates:
+- Multi-agent DeFi intelligence on X Layer L2
+- Trustless AI-driven trading with on-chain accountability
+- x402 payment flows for sustainable agent economies
+- Integration with Uniswap V3 for decentralized liquidity
+
+## ✅ Hackathon Submission Checklist
+
+- [x] **Multi-Agent Architecture**: Orchestrator, Specialist, Risk Guardian, Pay Relay
+- [x] **Autonomous Trading**: Scheduled market analysis and trade execution every 5 minutes
+- [x] **OnchainOS Integration**: 14 skills installed for DeFi operations (DEX swap, market data, wallet)
+- [x] **Smart Contracts**: NexusVault, SignalRegistry, AgentLeaderboard deployed on X Layer Testnet
+- [x] **X Layer Testnet**: Chain ID 1952, Uniswap V3 router configured correctly
+- [x] **Frontend Dashboard**: React app with Wagmi/RainbowKit integration
+- [x] **Security**: .env files secured, no committed credentials, .gitignore protection
+- [x] **Documentation**: README with setup instructions and architecture overview
+- [x] **Testing**: Basic test suite for configuration validation
+- [x] **Autonomous Operation**: Cron-based trading loop with risk management
+
+## 🎯 Key Features Implemented
+
+### Autonomous Trading Loop
+- **Market Analysis**: Fetches price data every 5 minutes using OnchainOS skills
+- **Risk Management**: Checks position limits and drawdown before trades
+- **Trade Execution**: Uses OnchainOS skills for secure DEX operations
+- **Signal Logging**: Records all trades to SignalRegistry for transparency
+
+### Multi-Agent Coordination
+- **Orchestrator**: Central coordinator with autonomous trading (Person 2)
+- **Specialist**: Yield farming strategies with market scout + farmer agents (Person 3)
+- **Risk Guardian**: Position limits and risk validation (Person 4)
+- **Pay Relay**: x402 micropayments for premium signals (Person 4)
+
+### DeFi Integration
+- **Uniswap V3**: Concentrated liquidity and automated trading on X Layer
+- **OnchainOS Skills**: 14 skills for secure wallet operations and DEX interactions
+- **x402 Payments**: Micropayment system for agent subscriptions and fees
 
 ## Team
 
@@ -143,3 +256,5 @@ npm run farm
 ## License
 
 MIT
+
+{agent works}
