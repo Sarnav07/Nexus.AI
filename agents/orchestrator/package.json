@@ -6,23 +6,6 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-<<<<<<< HEAD
-    "test": "tsx --test src/tools/*.test.ts",
-    "farm": "tsx src/scripts/farm_txs.ts"
-  },
-  "dependencies": {
-    "ai": "^4.3.0",
-    "@ai-sdk/google": "^1.2.0",
-    "@nexus/specialist": "file:../specialist",
-    "@nexus/risk-guardian": "file:../risk-guardian",
-    "@okx/onchainos-skills": "file:./src/skills/okx/onchainos-skills",
-    "@uniswap/agent-skills": "file:./src/skills/uniswap/agent-skills",
-    "zod": "^3.24.0",
-    "viem": "^2.23.0",
-    "hono": "^4.7.0",
-    "@hono/node-server": "^1.14.0",
-    "dotenv": "^16.4.0"
-=======
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
     "test": "vitest"
@@ -34,7 +17,6 @@
     "hono": "^4.0.0",
     "node-cron": "^3.0.0",
     "viem": "^2.0.0"
->>>>>>> running_agent
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

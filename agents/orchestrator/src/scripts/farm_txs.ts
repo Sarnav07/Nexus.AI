@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { teeWalletService } from '../services/onchainos-wallet.js';
-import { CONTRACTS } from '../config/contracts.js';
+import { CONTRACTS } from '../config/chain.js';
 import { encodeFunctionData } from 'viem';
 
 // ABI fragment just for logging a minimal signal to keep the agent active
@@ -52,7 +52,7 @@ async function runFarm() {
 
       console.log(`[Nonce: ${nonce}] 🤖 Sending to OnchainOS TEE Wallet for secure signing`);
       const result = await teeWalletService.signAndBroadcast({
-        to: CONTRACTS.SignalRegistry as `0x${string}`,
+        to: CONTRACTS.SIGNAL_REGISTRY as `0x${string}`,
         data,
       });
 
