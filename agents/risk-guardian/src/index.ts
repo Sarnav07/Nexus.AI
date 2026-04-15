@@ -1,45 +1,123 @@
-import { TradePayload, TradePayloadSchema } from './schemas';
-import { GuardianValidator } from './validator';
-import chalk from 'chalk';
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+import { createPublicClient, http } from 'viem';
+import { defineChain } from 'viem';
 
-export async function runRiskGuardianCheck(
-    payload: unknown,
-    userAddress: string,
-    vaultAddress: string,
-    rpcUrl: string
-): Promise<boolean> {
-    console.log(chalk.blue('\n[RISK GUARDIAN] INTERCEPTING SPECIALIST PAYLOAD...'));
+// Chain configuration
+const xLayerTestnet = defineChain({
+  id: 1952,
+  name: 'X Layer Testnet',
+  network: 'x-layer-testnet',
+  nativeCurrency: {
+    decimals: 18,
+    name: 'OKB',
+    symbol: 'OKB',
+  },
+  rpcUrls: {
+    default: {
+      http: ['https://testrpc.xlayer.tech'],
+    },
+    public: {
+      http: ['https://testrpc.xlayer.tech'],
+    },
+  },
+  blockExplorers: {
+    default: { name: 'X Layer Explorer', url: 'https://www.okx.com/explorer/xlayer-testnet' },
+  },
+  testnet: true,
+});
 
-    const parseResult = TradePayloadSchema.safeParse(payload);
-    if (!parseResult.success) {
-        console.log(chalk.red('\n[RISK GUARDIAN: BLOCKED] - INVALID PAYLOAD SCHEMA'));
-        return false;
-    }
+const CONTRACTS = {
+  NEXUS_VAULT: '0x9DDa87f22F2a29D43b36417EA8eAEB1F68CFb689',
+  SIGNAL_REGISTRY: '0x66B39854C90d9898dBEE1Aa1E24F541A731DC925',
+  AGENT_LEADERBOARD: '0xE606422f053Cbb2F1961CE761fEe8c2a06f4db60',
+};
 
-    const tradeData = parseResult.data;
+import NexusVaultABI from '../../../shared/abis/NexusVault.json' assert { type: 'json' };
 
-    let amountUSDC: bigint;
-    try {
-        amountUSDC = BigInt(tradeData.metadata.amountInRaw);
-    } catch (e) {
-        console.log(chalk.red('\n[RISK GUARDIAN: BLOCKED] - CANNOT PARSE amountInRaw'));
-        return false;
-    }
+const app = new Hono();
+const port = process.env.PORT || 3003;
 
-    const tokenIn = typeof tradeData.metadata.tokenIn === 'string' ? tradeData.metadata.tokenIn : "";
-    const tokenOut = typeof tradeData.metadata.tokenOut === 'string' ? tradeData.metadata.tokenOut : "";
+// Initialize Viem client
+const publicClient = createPublicClient({
+  chain: xLayerTestnet,
+  transport: http(),
+});
 
-    const validator = new GuardianValidator(vaultAddress, rpcUrl);
-    return await validator.validateTrade(
-        userAddress,
-        amountUSDC,
-        tokenIn,
-        tokenOut,
-        tradeData.target,
-        tradeData.data,
-        tradeData.value
-    );
+// CORS middleware
+app.use('*', cors());
+
+// Health check endpoint
+app.get('/health', (c) => c.json({ status: 'ok', agent: 'risk-guardian', timestamp: Date.now() }));
+
+// Risk validation endpoint
+app.post('/api/validate-trade', async (c) => {
+  try {
+    const { userAddress, tradeAmount } = await c.req.json();
+
+    // Check drawdown limit
+    const drawdownOk = await publicClient.readContract({
+      address: CONTRACTS.NEXUS_VAULT,
+      abi: NexusVaultABI.abi,
+      functionName: 'checkDrawdownLimit',
+      args: [userAddress, BigInt(tradeAmount)],
+    });
+
+    // Check position size
+    const positionOk = await publicClient.readContract({
+      address: CONTRACTS.NEXUS_VAULT,
+      abi: NexusVaultABI.abi,
+      functionName: 'checkPositionSize',
+      args: [BigInt(tradeAmount)],
+    });
+
+    return c.json({
+      approved: drawdownOk && positionOk,
+      drawdownOk,
+      positionOk,
+      timestamp: Date.now(),
+    });
+  } catch (error) {
+    console.error('Error validating trade:', error);
+    return c.json({ error: 'Failed to validate trade' }, 500);
+  }
+});
+
+// Risk parameters endpoint
+app.get('/api/risk-params', async (c) => {
+  try {
+    const [drawdownBps, positionBps, isPaused] = await publicClient.readContract({
+      address: CONTRACTS.NEXUS_VAULT,
+      abi: NexusVaultABI.abi,
+      functionName: 'getRiskParams',
+      args: [],
+    });
+
+    return c.json({
+      drawdownBps: Number(drawdownBps),
+      positionBps: Number(positionBps),
+      isPaused,
+      timestamp: Date.now(),
+    });
+  } catch (error) {
+    console.error('Error getting risk params:', error);
+    return c.json({ error: 'Failed to get risk parameters' }, 500);
+  }
+});
+
+console.log(`Nexus Risk Guardian Agent starting on port ${port}...`);
+
+// Start the server
+export default {
+  port,
+  fetch: app.fetch,
+};
+
+// For development with tsx, also start the server manually
+if (import.meta.main) {
+  const { serve } = await import('@hono/node-server');
+  serve({
+    fetch: app.fetch,
+    port: Number(port),
+  });
 }
-
-export * from './schemas';
-export * from './validator';

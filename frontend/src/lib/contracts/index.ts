@@ -1,7 +1,7 @@
 /**
  * Nexus.AI Contract Configuration
  * Single source-of-truth for all deployed contract addresses and ABIs.
- * Chain: X Layer Testnet (chainId: 195)
+ * Chain: X Layer Testnet (chainId: 1952)
  */
 
 // ── Deployed Addresses ───────────────────────────────────────────────────────
@@ -10,6 +10,7 @@ export const CONTRACTS = {
   SignalRegistry:  '0x66B39854C90d9898dBEE1Aa1E24F541A731DC925' as `0x${string}`,
   AgentLeaderboard:'0xE606422f053Cbb2F1961CE761fEe8c2a06f4db60' as `0x${string}`,
   USDC:            '0x74b7f16337b8972027f6196a17a631ac6de26d22' as `0x${string}`,
+  USDG:            '0xA78E2baaBaf5c4f36b7Fc394725Deb68D332EeC1' as `0x${string}`, // USDG contract address on X Layer testnet
   Treasury:        '0xbd598563ad2f462baa3f8da0e79c310ce03682c6' as `0x${string}`,
 } as const;
 

@@ -3,8 +3,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { parseUnits } from "viem";
 import { NexusVaultABI, ERC20_ABI, CONTRACTS } from "@/lib/contracts";
-import { useUSDCAllowance, useUSDCBalance } from "@/hooks/useUSDCAllowance";
+import { useTokenAllowance, useTokenBalance } from "@/hooks/useUSDCAllowance";
 import { useNexusVault } from "@/hooks/useNexusVault";
+import { useToast } from "@/hooks/use-toast";
 
 type ModalMode = "deposit" | "withdraw";
 
@@ -14,8 +15,13 @@ interface VaultModalProps {
   onClose: () => void;
 }
 
-// ── Only USDC is supported by NexusVault ────────────────────────────────────
-const TOKEN = { symbol: "USDC", decimals: 6, icon: "💲" };
+// ── Supported Tokens ──────────────────────────────────────────────────────────
+const TOKENS = {
+  USDC: { symbol: "USDC", decimals: 6, icon: "💲", address: CONTRACTS.USDC, name: "USD Coin" },
+  USDG: { symbol: "USDG", decimals: 18, icon: "🪙", address: CONTRACTS.USDG, name: "USDG Stablecoin" },
+} as const;
+
+type SupportedToken = keyof typeof TOKENS;
 
 // ── Tx status helper ─────────────────────────────────────────────────────────
 type TxStatus = "idle" | "approving" | "approved" | "pending" | "success" | "error";
@@ -23,6 +29,18 @@ type TxStatus = "idle" | "approving" | "approved" | "pending" | "success" | "err
 const VaultModal = ({ mode, open, onClose }: VaultModalProps) => {
   const { address } = useAccount();
   const isDeposit = mode === "deposit";
+  const { toast } = useToast();
+
+  console.log('🔄 VaultModal render:', { mode, open, isDeposit });
+
+  // ── Token selection ─────────────────────────────────────────────────────────
+  const [selectedToken, setSelectedToken] = useState<SupportedToken>("USDG");
+  const TOKEN = TOKENS[selectedToken];
+
+  console.log('🎯 Selected token:', selectedToken, TOKEN);
+
+  // ── Auto-close countdown for success screen ───────────────────────────────
+  const [countdown, setCountdown] = useState(5);
 
   // ── Local UI state ────────────────────────────────────────────────────────
   const [amount, setAmount] = useState("");
@@ -30,8 +48,8 @@ const VaultModal = ({ mode, open, onClose }: VaultModalProps) => {
   const [txError, setTxError] = useState<string | null>(null);
 
   // ── On-chain read state ───────────────────────────────────────────────────
-  const { rawAllowance, refetch: refetchAllowance } = useUSDCAllowance(address);
-  const { rawBalance, balance: walletBalance, refetch: refetchBalance } = useUSDCBalance(address);
+  const { rawAllowance, refetch: refetchAllowance } = useTokenAllowance(TOKENS[selectedToken].address, TOKENS[selectedToken].decimals, address);
+  const { rawBalance, balance: walletBalance, refetch: refetchBalance } = useTokenBalance(TOKENS[selectedToken].address, TOKENS[selectedToken].decimals, address);
   const { userBalance: vaultBalance, refetch: refetchVault } = useNexusVault(address);
 
   // ── Write contracts ───────────────────────────────────────────────────────
@@ -84,8 +102,15 @@ const VaultModal = ({ mode, open, onClose }: VaultModalProps) => {
       refetchAllowance();
       refetchBalance();
       refetchVault();
+
+      // Show success toast
+      toast({
+        title: isDeposit ? "Deposit Successful" : "Withdrawal Successful",
+        description: `${amount} USDC ${isDeposit ? "deposited to" : "withdrawn from"} Nexus Vault`,
+        duration: 5000,
+      });
     }
-  }, [isConfirmed, refetchAllowance, refetchBalance, refetchVault]);
+  }, [isConfirmed, refetchAllowance, refetchBalance, refetchVault, amount, isDeposit, toast]);
 
   // ── Reset on open/close ───────────────────────────────────────────────────
   const handleClose = () => {
@@ -93,6 +118,7 @@ const VaultModal = ({ mode, open, onClose }: VaultModalProps) => {
     setAmount("");
     setTxStatus("idle");
     setTxError(null);
+    setCountdown(5);
     resetWrite();
   };
 
@@ -147,6 +173,28 @@ const VaultModal = ({ mode, open, onClose }: VaultModalProps) => {
 
   // ── Success screen ────────────────────────────────────────────────────────
   if (txStatus === "success") {
+    // Auto-close after 5 seconds
+    useEffect(() => {
+      const timer = setTimeout(() => {
+        handleClose();
+      }, 5000);
+
+      const countdownTimer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(countdownTimer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => {
+        clearTimeout(timer);
+        clearInterval(countdownTimer);
+      };
+    }, []);
+
     return (
       <AnimatePresence>
         {open && (
@@ -194,7 +242,7 @@ const VaultModal = ({ mode, open, onClose }: VaultModalProps) => {
                 onClick={handleClose}
                 className="mt-6 w-full py-3 bg-primary text-primary-foreground font-body text-sm font-semibold rounded-inner hover:scale-[1.01] transition-all"
               >
-                Done
+                Done ({countdown}s)
               </button>
             </motion.div>
           </motion.div>

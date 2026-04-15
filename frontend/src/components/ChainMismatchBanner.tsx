@@ -60,25 +60,56 @@ const ChainMismatchBanner = () => {
             </div>
 
             <p className="text-xs font-mono text-amber-300/90 flex-1">
-              Wrong network detected. Please switch to{' '}
+              Wrong network detected ({rawChainId}). Please switch to{' '}
               <span className="text-amber-300 font-semibold">{xLayerTestnet.name}</span>{' '}
               to use Nexus.AI.
             </p>
 
-            <button
-              onClick={async () => {
-                setSwitchError(null);
-                try {
-                  await switchChain({ chainId: SUPPORTED_CHAIN_ID });
-                } catch (err: any) {
-                  setSwitchError(err.message || 'Failed to switch network');
-                }
-              }}
-              disabled={isPending}
-              className="flex-shrink-0 px-3 py-1.5 text-[11px] font-mono font-semibold uppercase tracking-wider text-amber-900 bg-amber-400/90 hover:bg-amber-400 rounded-inner transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isPending ? 'Switching...' : 'Switch Network'}
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={async () => {
+                  setSwitchError(null);
+                  try {
+                    // First try to switch to the chain
+                    await switchChain({ chainId: SUPPORTED_CHAIN_ID });
+                  } catch (switchErr: any) {
+                    // If switch fails, try to add the network first
+                    try {
+                      const eth = (window as any).ethereum;
+                      if (eth) {
+                        await eth.request({
+                          method: 'wallet_addEthereumChain',
+                          params: [{
+                            chainId: `0x${SUPPORTED_CHAIN_ID.toString(16)}`,
+                            chainName: xLayerTestnet.name,
+                            nativeCurrency: xLayerTestnet.nativeCurrency,
+                            rpcUrls: xLayerTestnet.rpcUrls.default.http,
+                            blockExplorerUrls: [xLayerTestnet.blockExplorers?.default?.url],
+                          }],
+                        });
+                        // After adding, try switching again
+                        await switchChain({ chainId: SUPPORTED_CHAIN_ID });
+                      } else {
+                        throw new Error('No Ethereum provider found');
+                      }
+                    } catch (addErr: any) {
+                      setSwitchError(addErr.message || switchErr.message || 'Failed to switch/add network');
+                    }
+                  }
+                }}
+                disabled={isPending}
+                className="flex-shrink-0 px-3 py-1.5 text-[11px] font-mono font-semibold uppercase tracking-wider text-amber-900 bg-amber-400/90 hover:bg-amber-400 rounded-inner transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isPending ? 'Switching...' : 'Add/Switch Network'}
+              </button>
+
+              <button
+                onClick={() => window.location.reload()}
+                className="flex-shrink-0 px-3 py-1.5 text-[11px] font-mono font-semibold uppercase tracking-wider text-amber-900 bg-amber-400/60 hover:bg-amber-400/80 rounded-inner transition-all"
+              >
+                Refresh
+              </button>
+            </div>
 
             {switchError && (
               <p className="text-xs text-red-400 ml-2">{switchError}</p>

@@ -1,4 +1,5 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { useAccount } from 'wagmi';
 import { ORCHESTRATOR_URL } from '@/lib/contracts';
 
 export interface ChatMessage {
@@ -19,6 +20,19 @@ export function useOrchestratorChat() {
 
   // Abort controller ref — lets us cancel mid-stream
   const abortRef = useRef<AbortController | null>(null);
+
+  const { address, isConnected } = useAccount();
+
+  // Notify orchestrator when wallet connects
+  useEffect(() => {
+    if (isConnected && address) {
+      fetch(`${ORCHESTRATOR_URL}/api/connect-wallet`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address })
+      }).catch(err => console.error('Failed to notify orchestrator of wallet connection:', err));
+    }
+  }, [isConnected, address]);
 
   const sendMessage = useCallback(async (userInput: string) => {
     if (!userInput.trim() || isStreaming) return;
