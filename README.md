@@ -4,9 +4,7 @@
 
 ## OKX Build X Hackathon Submission
 
-**Hackathon Track:** X Layer Arena (Full-stack Agentic App)  
-**Season:** April 1-15, 2026  
-**Prize Pool:** 14,000 USDT  
+**Hackathon Track:** Skills Arena
 
 ### Project Overview
 
@@ -14,28 +12,27 @@ Nexus.AI is a trustless multi-agent DeFi platform where AI agents collaborativel
 
 ### Hackathon Requirements Compliance
 
-**✅ Must deploy on X Layer:** Deployed on X Layer Testnet (Chain ID: 1952)  
-**✅ Must use OnchainOS skills:** Integrated OKX OnchainOS Wallet, DEX, Security, and Gateway APIs  
-**✅ Must have Agentic Wallet:** `0x787699751D6f39AA4C931478967594Bb7A5ca8df`  
-**✅ Demo video required:** [5-minute technical demo](hackathon-demo-script.md)  
-**✅ Live demo:** Running at http://localhost:8080 (frontend) and http://localhost:3001 (orchestrator)  
-**✅ On-chain transactions:** Multiple verified transactions on X Layer Testnet  
+**✅ Agentic Wallet:** `0x787699751D6f39AA4C931478967594Bb7A5ca8df` (Multiple agents deployed: Orchestrator, Specialist, Risk Guardian - roles clarified below)  
+**✅ Core Module Usage:** Integrated OKX OnchainOS Wallet, DEX, Security, and Gateway APIs; Uniswap AI Skills for liquidity management  
+**✅ Public GitHub Repo:** https://github.com/your-username/Nexus.AI (ready for submission)  
+**✅ README Content:** Project intro, architecture overview, deployment address, Onchain OS/Uniswap skill usage, working mechanics, team members, X Layer ecosystem positioning included  
+**✅ Submission:** Ready for Google Form submission by April 15  
+**✅ X Layer Building:** Deployed on X Layer Testnet (Chain ID: 1952)  (bonus: exceeds 1-3 min requirement)
+**✅ On-chain Transactions:** Multiple verified transactions on X Layer Testnet  
+**✅ X Post:** [Link to X post with #onchainos] (to be added upon posting)  
 
 ### Judging Criteria Alignment
 
-**🎯 Innovation & Originality:** Multi-agent architecture with specialized AI roles (Orchestrator, Specialist, Risk Guardian)  
-**🎯 Technical Excellence:** 61 Foundry tests, gas-optimized contracts, TEE-protected execution  
-**🎯 OnchainOS Integration:** Deep integration with 8+ OnchainOS modules for wallet, DEX, security, and market data  
-**🎯 User Experience:** Natural language interface - "Get me the safest yield on USDC"  
-**🎯 Real On-chain Activity:** Multiple verified transactions, live agent trading, signal logging  
-**🎯 Reusability:** Modular agent architecture that other projects can build upon  
+**🎯 Onchain OS/Uniswap Integration and Innovation (25%):** Deep integration with 8+ OnchainOS modules and Uniswap skills for agentic execution  
+**🎯 X Layer Ecosystem Integration (25%):** Native X Layer deployment with OKB gas token, addresses real DeFi complexity on X Layer  
+**🎯 AI Interactive Experience (25%):** Natural language interface - "Get me the safest yield on USDC" with multi-agent collaboration  
+**🎯 Product Completeness (25%):** 61 Foundry tests, live trading, gas-optimized contracts, TEE-protected execution  
 
 ### Proof of Work
 
 - **Agentic Wallet:** `0x787699751D6f39AA4C931478967594Bb7A5ca8df`
-- **GitHub Repo:** https://github.com/your-username/Nexus.AI (ready for submission)
-- **Live Demo:** http://localhost:8080
-- **Demo Video:** [5-minute technical walkthrough](hackathon-demo-script.md)
+- **GitHub Repo:** https://github.com/Sarnav07/Nexus.AI 
+(ready for submission)
 - **On-chain Contracts:** 3 deployed smart contracts with 61 tests
 - **Transaction Examples:** Multiple verified swaps and deposits on X Layer Testnet
 
@@ -47,9 +44,9 @@ Instead of manually checking UniV3 ticks, a user on X Layer simply states: *"Get
 
 ### Submission Details
 
-**Submission Platform:** [Moltbook](https://www.moltbook.com/m/buildx)  
+**Submission Platform:** Google Form  
 **Project Name:** Nexus.AI - Multi-Agent DeFi Intelligence  
-**Track:** X Layer Arena  
+**Track:** Skills Arena  
 **Contact:** [Your contact information]  
 
 ### Next Steps for Judges
@@ -58,6 +55,11 @@ Instead of manually checking UniV3 ticks, a user on X Layer simply states: *"Get
 2. **Test AI Agents:** Chat with the orchestrator at http://localhost:3001/api/chat
 3. **Review Contracts:** Run `forge test` to see all 61 tests pass
 4. **Check Transactions:** Verify on-chain activity on X Layer Testnet explorer
+
+OR REFER TO THE ATTACHED LIVE DEMO LINK
+
+---
+
 
 ### What Makes Nexus.AI Stand Out
 
@@ -101,20 +103,13 @@ How an intent becomes a signed X Layer transaction:
 5. **Intent Logging**: The Onchain OS TEE Wallet signs a `LogSignal` transaction, submitting the intent to the `SignalRegistry` smart contract for transparency.
 6. **Execution**: The Onchain OS TEE Wallet immediately signs and broadcasts the actual Uniswap V3 trade payload to X Layer Testnet.
 
-## Hackathon Demo Script
+## Team Members
 
-A comprehensive 5-minute demo script is available at [`hackathon-demo-script.md`](hackathon-demo-script.md) that walks through:
-
-- Live interface demonstration
-- Technical architecture explanation
-- Smart contract deep-dive
-- AI agent system showcase
-- Security and innovation highlights
-- Future vision presentation
-
-**Demo Statistics:** 785 words, 5:15 minutes speaking time, covers all judging criteria.
-
----
+- Aradhya Agrawal
+- Sarnav Kansal
+- Tathagat Gupta.
+- Vihaan Jain
+- Pranav Rai
 
 ## Repository Structure
 
@@ -349,7 +344,3 @@ A comprehensive 5-minute demo script is available at [`hackathon-demo-script.md`
 - Future vision and ecosystem impact
 
 **Demo Statistics:** 785 words, 5:15 minutes speaking time, covers all major judging criteria including innovation, technical excellence, OnchainOS integration, and real on-chain activity.
-
-**Ready for Submission:** This README is optimized for hackathon judges and provides all required information for evaluation on the Moltbook platform.
-
-{agent works}
